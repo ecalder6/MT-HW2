@@ -68,6 +68,28 @@ while pp_diff > opts.delta:
   pp_diff = perplexity - perplexity2
   perplexity = perplexity2 
 
+  if i % 10 == 0:
+    f = open("checkpoint " + str(i/10), 'w')
+      
+    f.write("e_count\n")
+    for elem in e_count:
+        f.write(elem)
+        f.write(" ")
+        f.write(str(e_count[elem]))
+        f.write(",")
+
+    f.write("\n")
+    f.write("fe_count")
+    f.write("\n")
+    for elem in fe_count:
+      f.write(str(elem))
+      f.write(" ")
+      f.write(str(fe_count[elem]))
+      f.write(",")
+  
+    f.close()
+
+
 for (f, e) in bitext:
   for (i, f_i) in enumerate(f):
     k = 0
