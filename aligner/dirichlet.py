@@ -96,11 +96,11 @@ while pp_diff > opts.delta:
   pp_diff = perplexity - perplexity2
   perplexity = perplexity2 
 
-  if i % 10 == 0:
-    f = open("e_checkpoint " + str(i/10), 'w')
+  if k % 10 == 0:
+    f = open("e_checkpoint " + str(k/10), 'w')
     pickle.dump(e_count, f, protocol=pickle.HIGHEST_PROTOCOL)
     f.close()
-    f = open("fe_checkpoint " + str(i/10), 'w')
+    f = open("fe_checkpoint " + str(k/10), 'w')
     pickle.dump(fe_count, f, protocol=pickle.HIGHEST_PROTOCOL)
     f.close()
 
