@@ -42,7 +42,8 @@ p0 = 0.
 
 k = 0
 perplexity = sys.maxint
-while pp_diff > opts.delta:
+# while pp_diff > opts.delta:
+for _ in range(20):
   k += 1
 
   sys.stderr.write(str(k) + ' ')
@@ -60,13 +61,15 @@ while pp_diff > opts.delta:
 
       theta = defaultdict(int)
       Z = 0
-      if p0 != 0:
-        theta[(f_i, None)] = p0 * theta_fe[(f_i, None)] / theta_e[None]
-        Z = theta[(f_i, None)]
-
       for j, e_j in enumerate(e):
-        theta[(f_i, e_j)] = (1.-p0) * theta_fe[(f_i, e_j)] * math.pow(math.e, - lambda_prior * abs(i/m - j/n) ) / theta_e[e_j]
+        if j == 0:
+          e_j1 = None
+        else:
+          e_j1 = e[j-1]
+
+        theta[(f_i, e_j, e_j1)] = theta_fe[(f_i, e_j, e_j1)] * math.pow(math.e, - lambda_prior * abs(i/m - j/n) ) / theta_e[(e_j, e_j1)]
         Z += theta[(f_i, e_j)]
+        
       p_fe *= Z
 
       c = theta[(f_i, None)] / Z
@@ -74,20 +77,37 @@ while pp_diff > opts.delta:
       e_count[None] += c
 
       for e_j in set(e):
-        c = theta[(f_i, e_j)] / Z
-        fe_count[(f_i, e_j)] += c
-        e_count[e_j] += c
+        if j == 0:
+          e_j1 = None
+        else:
+          e_j1 = e[j-1]
+        c = theta[(f_i, e_j, e_j1)] / Z
+        fe_count[(f_i, e_j, e_j1)] += c
+        e_count[(e_j,e_j1)] += c
 
     perplexity2 -= math.log(p_fe)
     if iteration % 500 == 0:
       sys.stderr.write(".")
 
+  # theta_e = defaultdict(lambda: 0.)
+  # digamma_e = defaultdict(lambda: 0.)
+  # for e, val in e_count.iteritems():
+  #   digamma_e[e] = math.pow(math.e, digamma(val + f_vocab_size * alpha))
+
+  # for (f,e), val in fe_count.iteritems():
+  #   a = math.pow(math.e, digamma(val + alpha)) / digamma_e[e]
+  #   theta_fe[(f,e)] = a
+  #   theta_e[e] += a
+
   theta_e = defaultdict(lambda: 0.)
-  for (f,e), val in fe_count.iteritems():
+  for (f,e1, e2), val in fe_count.iteritems():
     a = math.pow(math.e, digamma(val + alpha))# / math.pow(math.e, digamma(e_count[e] + f_vocab_size * alpha))
-    theta_fe[(f,e)] = a
-    theta_e[e] += a
+    theta_fe[(f,e1,e2)] = a
+    theta_e[(e1,e2)] += a
   
+  # for e, val in e_count.iteritems():
+    # theta_e[e] /= math.pow(math.e, digamma(val + f_vocab_size * alpha))
+
   pp_diff = perplexity - perplexity2
   perplexity = perplexity2 
 
@@ -104,17 +124,17 @@ for (f, e) in bitext:
   n = float(len(e))
   for (i, f_i) in enumerate(f):
     k = None
-    if p0 != 0:
-      max_prob = p0 * theta_fe[(f_i, None)] / theta_e[None]
-    else:
-      max_prob = 0
+    max_prob = 0
 
     for (j, e_j) in enumerate(e):
-      theta = (1.-p0) * theta_fe[(f_i, e_j)] * math.pow(math.e, - lambda_prior * abs(i/m - j/n) ) / theta_e[e_j]
+      if j == 0:
+        e_j1 = None
+      else:
+        e_j1 = e[j-1]
+      theta = theta_fe[(f_i, e_j,e_j1)] * math.pow(math.e, - lambda_prior * abs(i/m - j/n) ) / theta_e[(e_j,e_j1)]
       if theta > max_prob:
         max_prob = theta
         k = j
 
-    if k is not None:
-      sys.stdout.write("%i-%i " % (i,k))
+    sys.stdout.write("%i-%i " % (i,k))
   sys.stdout.write("\n")
