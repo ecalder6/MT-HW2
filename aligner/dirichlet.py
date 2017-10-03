@@ -53,7 +53,7 @@ while pp_diff > opts.delta:
   fe_count = defaultdict(int)
 
   for (iteration, (f, e)) in enumerate(bitext):
-    p_fe = 1
+    #p_fe = 1
     m = float(len(f))
     n = float(len(e))
     for i, f_i in enumerate(f):
@@ -67,18 +67,18 @@ while pp_diff > opts.delta:
       for j, e_j in enumerate(e):
         theta[(f_i, e_j)] = (1.-p0) * theta_fe[(f_i, e_j)] * math.pow(math.e, - lambda_prior * abs(i/m - j/n) ) / theta_e[e_j]
         Z += theta[(f_i, e_j)]
-      p_fe *= Z
-
+      #p_fe *= Z
+      perplexity2 -= math.log(Z)
       c = theta[(f_i, None)] / Z
       fe_count[(f_i, None)] += c
       e_count[None] += c
 
-      for e_j in set(e):
+      for e_j in e:
         c = theta[(f_i, e_j)] / Z
         fe_count[(f_i, e_j)] += c
         e_count[e_j] += c
 
-    perplexity2 -= math.log(p_fe)
+    #perplexity2 -= math.log(p_fe)
     if iteration % 500 == 0:
       sys.stderr.write(".")
 

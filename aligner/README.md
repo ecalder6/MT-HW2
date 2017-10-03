@@ -1,24 +1,27 @@
-There are three python programs here (`-h` for usage):
+Achintya Gopal
+Eric Calder
+Philip Piantone
 
--`./align` aligns words.
+IBM Model I 
 
--`./check-alignments` checks that the entire dataset is aligned, and
-  that there are no out-of-bounds alignment points.
+python align.py -n 100000
 
--`./score-alignments` computes alignment error rate.
 
-The commands work in a pipeline. For instance:
+Grow Diag Final (And)
 
-   > ./align -t 0.9 -n 1000 | ./check | ./grade -n 5
+You create the input to the grow diagonal code by running these two commands:
 
-The `data` directory contains a fragment of the Canadian Hansards,
-aligned by Ulrich Germann:
+python align.py -n 1000 > data/1000_alignment.ef
+python align.py -n 1000 -e f -f e > data/1000_alignment.fe
 
--`hansards.e` is the English side.
+Then you can the create and score the grow diagonal alignments with this command:
+python grow_diag_final.py --data data/1000_alignment | python score-alignments
 
--`hansards.f` is the French side.
+You can also run the code with the And option:
+python grow_diag_final.py --data data/1000_alignment --final_and | python score-alignments
 
--`hansards.a` is the alignment of the first 37 sentences. The 
-  notation i-j means the word as position i of the French is 
-  aligned to the word at position j of the English. Notation 
-  i?j means they are probably aligned. Positions are 0-indexed.
+
+
+
+Dirichlet Prior
+
