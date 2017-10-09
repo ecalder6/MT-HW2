@@ -19,6 +19,7 @@ def TM(filename, k):
     tm.setdefault(tuple(f.split()), []).append(phrase(e, float(logprob)))
   for f in tm: # prune all but top k translations
     tm[f].sort(key=lambda x: -x.logprob)
+    # print((tm[f]))
     del tm[f][k:] 
   return tm
 
@@ -45,6 +46,20 @@ class LM:
 
   def begin(self):
     return ("<s>",)
+
+  def score2(self, state, word):
+    # ngram = state + (word,)
+    ngram = state[0] + (word,)
+    score = 0.0
+    while len(ngram)> 0:
+      if ngram in self.table:
+        # return (ngram[-2:], score + self.table[ngram].logprob)
+        return ((ngram[-2:], state[1]), score + self.table[ngram].logprob)
+      else: #backoff
+        score += self.table[ngram[:-1]].backoff if len(ngram) > 1 else 0.0 
+        ngram = ngram[1:]
+    # return ((), score + self.table[("<unk>",)].logprob)
+    return (((), state[1]), score + self.table[("<unk>",)].logprob)
 
   def score(self, state, word):
     ngram = state + (word,)
