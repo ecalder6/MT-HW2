@@ -54,18 +54,24 @@ for f in french:
             # add 'reordering'
             logprob += abs(i - lm_state[1] - 1) * math.log(0.9)
             lm_state = (lm_state[0], j - 1)
-
+            
             logprob += lm.end(lm_state) if j == len(f) else 0.0
             new_hypothesis = hypothesis(logprob, lm_state, h, phrase)
             if lm_state not in stacks[j] or stacks[j][lm_state].logprob < logprob: # second case is recombination
               stacks[j][lm_state] = new_hypothesis 
 
+        #test every word between the next one and the final one
         for k in xrange(i + 1, j):
+          #if the first and second part of the french words have a translation
           if f[i:k] in tm and f[k:j] in tm:
             for phrase1 in tm[f[i:k]]:
+              print phrase1
+              break
               for phrase2 in  tm[f[k:j]]:
+                #get logprob of the two phrases
                 logprob = h.logprob + phrase1.logprob + phrase2.logprob
                 lm_state = h.lm_state
+                #add up log prob of each English word
                 for word in phrase2.english.split():
                   (lm_state, word_logprob) = lm.score2(lm_state, word)
                   logprob += word_logprob
@@ -77,6 +83,8 @@ for f in french:
                 # add reordering term
                 logprob += abs(k - lm_state[1] - 1) * math.log(0.9)
                 logprob += abs(i - (j-1) - 1) * math.log(0.9)
+
+                #create new language model state
                 lm_state = (lm_state[0], k - 1)
 
                 logprob += lm.end(lm_state) if j == len(f) else 0.0
