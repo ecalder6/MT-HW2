@@ -74,3 +74,6 @@ class LM:
     
   def end(self, state):
     return self.score(state, "</s>")[1]
+
+  def end2(self, state):
+    return self.score2(state, "</s>")[1]

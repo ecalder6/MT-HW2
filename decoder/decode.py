@@ -54,8 +54,8 @@ for f in french:
             # add 'reordering'
             logprob += abs(i - lm_state[1] - 1) * math.log(0.9)
             lm_state = (lm_state[0], j - 1)
-            
-            logprob += lm.end(lm_state) if j == len(f) else 0.0
+
+            logprob += lm.end2(lm_state) if j == len(f) else 0.0
             new_hypothesis = hypothesis(logprob, lm_state, h, phrase)
             if lm_state not in stacks[j] or stacks[j][lm_state].logprob < logprob: # second case is recombination
               stacks[j][lm_state] = new_hypothesis 
@@ -87,7 +87,7 @@ for f in french:
                 #create new language model state
                 lm_state = (lm_state[0], k - 1)
 
-                logprob += lm.end(lm_state) if j == len(f) else 0.0
+                logprob += lm.end2(lm_state) if j == len(f) else 0.0
                 new_hypothesis = hypothesis(logprob, lm_state, hypothesis(logprob, lm_state, h, phrase2), phrase1)
                 if lm_state not in stacks[j] or stacks[j][lm_state].logprob < logprob: # second case is recombination
                   stacks[j][lm_state] = new_hypothesis
