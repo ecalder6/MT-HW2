@@ -24,14 +24,30 @@ def get_neighbors(h, tm):
   hypotheses = []
   
   for i in xrange(0, len(h)):
+    
+    #swap
+    if i < len(h) -1:
+      new_hyp = list(h)
+      new_hyp[i], new_hyp[i+1] = new_hyp[i+1], new_hyp[i]
+      hypotheses.append(new_hyp)
 
     #replacement
     for translation in tm[h[i][1]]:
       if translation[0] != h[i][0]:
-         new_hyp = list(h)
-         new_hyp[i] = (translation[0], h[i][1], translation[1], h[i][3], h[i][4])
-         hypotheses.append(new_hyp)
+        new_hyp = list(h)
+        new_hyp[i] = (translation[0], h[i][1], translation[1], h[i][3], h[i][4])
+        hypotheses.append(new_hyp)
+        
+        #bi-replace
+        for j in xrange(i + 1, len(h)):
+          for translation2 in tm[h[j][1]:
+            if translation2[0] != h[j][0]:
+              second_hyp = list(new_hype)
+              second_hyp[j] = (translation2[0], h[j][1], translation2[1],
+                  h[j][3], h[i][4])
+              hypotheses.append(second_hyp)
 
+    
     #merge neighbors
     if i < len(h)- 1 and h[i][1] + h[i+1][1] in tm:
       for translation in tm[h[i][1] + h[i+1][1]]:
