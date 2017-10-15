@@ -15,6 +15,33 @@ optparser.add_option("-s", "--stack-size", dest="s", default=1, type="int", help
 optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,  help="Verbose mode (default=off)")
 opts = optparser.parse_args()[0]
 
+def get_neihbors(h, tm):
+
+  """
+  1) swap is already handled by our beam decoder, so copy it over
+  2) replace should be easy to try
+  3) bi-replace is also easy to try
+  4) move has conditions I don't understand very well, do you move a part of a
+  phrase?
+  5) merge and split are performed on long enough phrases, check if in lm on
+  return
+  """
+
+  hypotheses = set()
+  #replace
+  for elem in h:
+    for translation in tm[h[1]]:
+      if translation != elem[0]:
+        #copy everything but current elem, and use translation as new list
+        #member
+        hypotheses.add(None)
+    if len(elem[0]) > 1:
+      #split phrase up
+      hypotheses.add(None)
+
+
+  return hypotheses
+
 def extract_english(h): 
     return "" if h.predecessor is None else "%s%s " % (extract_english(h.predecessor), h.phrase.english)
 
@@ -65,8 +92,6 @@ for f in french:
           #if the first and second part of the french words have a translation
           if f[i:k] in tm and f[k:j] in tm:
             for phrase1 in tm[f[i:k]]:
-              print phrase1
-              break
               for phrase2 in  tm[f[k:j]]:
                 #get logprob of the two phrases
                 logprob = h.logprob + phrase1.logprob + phrase2.logprob
@@ -84,17 +109,52 @@ for f in french:
                 logprob += abs(k - lm_state[1] - 1) * math.log(0.9)
                 logprob += abs(i - (j-1) - 1) * math.log(0.9)
 
-                #create new language model state
+                #create new language model state from the old
                 lm_state = (lm_state[0], k - 1)
 
                 logprob += lm.end2(lm_state) if j == len(f) else 0.0
                 new_hypothesis = hypothesis(logprob, lm_state, hypothesis(logprob, lm_state, h, phrase2), phrase1)
                 if lm_state not in stacks[j] or stacks[j][lm_state].logprob < logprob: # second case is recombination
                   stacks[j][lm_state] = new_hypothesis
-
-  winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
   
-  print extract_english(winner)
+
+  #current seed for greedy decoder
+  winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
+  cur = winner
+
+
+  #flatten hypotheses
+  sent = list()
+  while cur != None:
+    sent.insert(0, (cur[1], cur[3]))
+    cur = cur[2]
+
+  #print sent
+            
+  logprob = h.logprob + phrase.logprob
+  lm_state = h.lm_state
+  for word in phrase.english.split():
+    (lm_state, word_logprob) = lm.score2(lm_state, word)
+    logprob += word_logprob
+
+  logprob = 0.
+  for elem in sent[1:]:
+    lm_state = elem[0]
+    for word in elem[1].english.split():
+      print word, word_logprob
+      (lm_state, word_logprob) = lm.score2(lm_state, word)
+      logprob += word_logprob
+  print logprob
+  #loop until no better changes are produced
+  #while True:
+  #  cur_best = winner[0]
+  #  cur_hyp = winner
+  #  #get all neighbors
+
+  #print extract_english(winner)
+  print winner
+  break
+
 
   if opts.verbose:
     def extract_tm_logprob(h):
