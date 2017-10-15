@@ -40,9 +40,9 @@ def get_neighbors(h, tm):
         
         #bi-replace
         for j in xrange(i + 1, len(h)):
-          for translation2 in tm[h[j][1]:
+          for translation2 in tm[h[j][1]]:
             if translation2[0] != h[j][0]:
-              second_hyp = list(new_hype)
+              second_hyp = list(new_hyp)
               second_hyp[j] = (translation2[0], h[j][1], translation2[1],
                   h[j][3], h[i][4])
               hypotheses.append(second_hyp)
@@ -155,7 +155,6 @@ for f in french:
     list_version.append(obj(h.phrase.english, h.french, h.phrase.logprob, h.lm_state[1] + 1 - len(h.french), h.lm_state[1]))
     h = h.predecessor
   list_version = list_version[::-1]
-  print len(get_neighbors(list_version, tm))
 
   if opts.verbose:
     def extract_tm_logprob(h):
