@@ -18,9 +18,48 @@ opts = optparser.parse_args()[0]
 def extract_english(h): 
     return "" if h.predecessor is None else "%s%s " % (extract_english(h.predecessor), h.phrase.english)
 
+def get_neighbors(h, tm):
+
+  #english, french, logprob, start, end
+  hypotheses = []
+  
+  for i in xrange(0, len(h)):
+
+    #replacement
+    for translation in tm[h[i][1]]:
+      if translation[0] != h[i][0]:
+         new_hyp = list(h)
+         new_hyp[i] = (translation[0], h[i][1], translation[1], h[i][3], h[i][4])
+         hypotheses.append(new_hyp)
+
+    #merge neighbors
+    if i < len(h)- 1 and h[i][1] + h[i+1][1] in tm:
+      for translation in tm[h[i][1] + h[i+1][1]]:
+        new_hyp = list(h)
+        del new_hyp[i+1]
+        new_hyp[i] = (translation[0], h[i][1] + h[i+1][1], translation[1], h[i][3], h[i+1][4])
+
+    #split
+    if len(h[i][1]) > 1:
+      first_half = h[i][1][0:len(h[i][1])/2]
+      second_half = h[i][1][len(h[i][1])/2:]
+      if first_half in tm and second_half in tm:
+        for translation1 in tm[first_half]:
+          obj1 = (translation1[0], first_half, translation1[1], h[i][3], h[i][3]
+                  + len(first_half) - 1)
+          for translation2 in tm[second_half]:
+            obj2 = (translation2[0], second_half, translation2[1], obj1[4] + 1,
+                    obj1[4] + len(second_half))
+            new_hyp = h[0:i] + [obj1] + [obj2] + h[i+1:]
+            hypotheses.append(new_hyp)
+  return hypotheses
+
 tm = models.TM(opts.tm, opts.k)
 lm = models.LM(opts.lm)
 french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[1:opts.num_sents+1]]
+
+i = 0
+
 
 # tm should translate unknown words as-is with probability 1
 for word in set(sum(french,())):
@@ -91,20 +130,16 @@ for f in french:
                   stacks[j][lm_state2] = new_hypothesis
 
   winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
-  print(winner)
   h = winner
   list_version = []
   obj = namedtuple("obj", "english, french, logprob, start, end")
-  print(f)
   while h is not None:
     if h.phrase is None:
       break
-    print(h.phrase, h.lm_state[1], h.french)
     list_version.append(obj(h.phrase.english, h.french, h.phrase.logprob, h.lm_state[1] + 1 - len(h.french), h.lm_state[1]))
     h = h.predecessor
   list_version = list_version[::-1]
-  # print(list_version)
-  print extract_english(winner)
+  print len(get_neighbors(list_version, tm))
 
   if opts.verbose:
     def extract_tm_logprob(h):
