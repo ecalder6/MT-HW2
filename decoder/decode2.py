@@ -80,7 +80,7 @@ def score(l, tm, lambda_lm = 1, lambda_tm = 1, lambda_w = 1, lambda_d = 1, alpha
 
 tm = models.TM(opts.tm, opts.k)
 lm = models.LM(opts.lm)
-french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[1:opts.num_sents+1]]
+french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[0:opts.num_sents+1]]
 
 i = 0
 
