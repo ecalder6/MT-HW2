@@ -18,7 +18,7 @@ opts = optparser.parse_args()[0]
 def extract_english(h): 
     return "" if h.predecessor is None else "%s%s " % (extract_english(h.predecessor), h.phrase.english)
 
-def get_neighbors(h, tm):
+def get_neighbors(h, tm, obj):
 
   #english, french, logprob, start, end
   hypotheses = []
@@ -35,7 +35,7 @@ def get_neighbors(h, tm):
     for translation in tm[h[i][1]]:
       if translation[0] != h[i][0]:
         new_hyp = list(h)
-        new_hyp[i] = (translation[0], h[i][1], translation[1], h[i][3], h[i][4])
+        new_hyp[i] = obj(translation[0], h[i][1], translation[1], h[i][3], h[i][4])
         hypotheses.append(new_hyp)
         
         #bi-replace
@@ -43,7 +43,7 @@ def get_neighbors(h, tm):
           for translation2 in tm[h[j][1]]:
             if translation2[0] != h[j][0]:
               second_hyp = list(new_hyp)
-              second_hyp[j] = (translation2[0], h[j][1], translation2[1],
+              second_hyp[j] = obj(translation2[0], h[j][1], translation2[1],
                   h[j][3], h[i][4])
               hypotheses.append(second_hyp)
 
@@ -53,7 +53,7 @@ def get_neighbors(h, tm):
       for translation in tm[h[i][1] + h[i+1][1]]:
         new_hyp = list(h)
         del new_hyp[i+1]
-        new_hyp[i] = (translation[0], h[i][1] + h[i+1][1], translation[1], h[i][3], h[i+1][4])
+        new_hyp[i] = obj(translation[0], h[i][1] + h[i+1][1], translation[1], h[i][3], h[i+1][4])
 
     #split
     if len(h[i][1]) > 1:
@@ -61,19 +61,38 @@ def get_neighbors(h, tm):
       second_half = h[i][1][len(h[i][1])/2:]
       if first_half in tm and second_half in tm:
         for translation1 in tm[first_half]:
-          obj1 = (translation1[0], first_half, translation1[1], h[i][3], h[i][3]
+          obj1 = obj(translation1[0], first_half, translation1[1], h[i][3], h[i][3]
                   + len(first_half) - 1)
           for translation2 in tm[second_half]:
-            obj2 = (translation2[0], second_half, translation2[1], obj1[4] + 1,
+            obj2 = obj(translation2[0], second_half, translation2[1], obj1[4] + 1,
                     obj1[4] + len(second_half))
             new_hyp = h[0:i] + [obj1] + [obj2] + h[i+1:]
             hypotheses.append(new_hyp)
   return hypotheses
 
+def score(l, tm, lambda_lm = 1, lambda_tm = 1, lambda_w = 1, lambda_d = 1, alpha = .8):
+  state = lm.begin()
+  e_logprob = 0.
+  fe_logprob = 0.
+  reordering_logprob = 0.
+  for i, obj in enumerate(l):
+    fe_logprob += obj.logprob
+
+    for word in obj.english.split():
+      (state, word_logprob) = lm.score(state, word)
+      e_logprob += word_logprob
+
+    if i == 0:
+      reordering_logprob += abs(obj.start - (-1) - 1) * math.log(0.9)
+    else:
+      reordering_logprob += abs(obj.start - (l[i-1].end) - 1) * math.log(0.9)
+
+  e_logprob += lm.end(state)
+  return e_logprob + fe_logprob + reordering_logprob
+
 tm = models.TM(opts.tm, opts.k)
 lm = models.LM(opts.lm)
 french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[:opts.num_sents]]
-
 i = 0
 
 
@@ -146,8 +165,6 @@ for f in french:
                   stacks[j][lm_state2] = new_hypothesis
 
   winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
-  print(winner.logprob)
-  print(extract_english(winner))
   h = winner
   list_version = []
   obj = namedtuple("obj", "english, french, logprob, start, end")
@@ -158,25 +175,27 @@ for f in french:
     h = h.predecessor
   list_version = list_version[::-1]
 
-  def score(l, tm, lambda_lm = 1, lambda_tm = 1, lambda_w = 1, lambda_d = 1, alpha = .8):
-    state = lm.begin()
-    e_logprob = 0.
-    fe_logprob = 0.
-    reordering_logprob = 0.
-    for i, obj in enumerate(l):
-      fe_logprob += obj.logprob
+  # Greedy
+  current = list_version
+  while True:
+    s_current = score(current, tm)
+    s = s_current
+    best = None
+    for h in get_neighbors(current, tm, obj):
+      c = score(h, tm)
+      if c > s:
+        s = c
+        best = h
+    if s == s_current:
+      break
+    current = best
+  winner = current
+  def extract_english(h): 
+    return ' '.join([t.english for t in h])
 
-      for word in obj.english.split():
-        (state, word_logprob) = lm.score(state, word)
-        e_logprob += word_logprob
-
-      if i == 0:
-        reordering_logprob += abs(obj.start - (-1) - 1) * math.log(0.9)
-      else:
-        reordering_logprob += abs(obj.start - (l[i-1].end) - 1) * math.log(0.9)
-
-    e_logprob += lm.end(state)
-    return e_logprob + fe_logprob + reordering_logprob
+  # def extract_english(h): 
+  #   return "" if h.predecessor is None else "%s%s " % (extract_english(h.predecessor), h.phrase.english)
+  print extract_english(winner)
 
   if opts.verbose:
     def extract_tm_logprob(h):
