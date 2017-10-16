@@ -72,7 +72,7 @@ def get_neighbors(h, tm):
 
 tm = models.TM(opts.tm, opts.k)
 lm = models.LM(opts.lm)
-french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[1:opts.num_sents+1]]
+french = [tuple(line.strip().split()) for line in open(opts.input).readlines()[:opts.num_sents]]
 
 i = 0
 
@@ -146,6 +146,8 @@ for f in french:
                   stacks[j][lm_state2] = new_hypothesis
 
   winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
+  print(winner.logprob)
+  print(extract_english(winner))
   h = winner
   list_version = []
   obj = namedtuple("obj", "english, french, logprob, start, end")
@@ -155,6 +157,26 @@ for f in french:
     list_version.append(obj(h.phrase.english, h.french, h.phrase.logprob, h.lm_state[1] + 1 - len(h.french), h.lm_state[1]))
     h = h.predecessor
   list_version = list_version[::-1]
+
+  def score(l, tm, lambda_lm = 1, lambda_tm = 1, lambda_w = 1, lambda_d = 1, alpha = .8):
+    state = lm.begin()
+    e_logprob = 0.
+    fe_logprob = 0.
+    reordering_logprob = 0.
+    for i, obj in enumerate(l):
+      fe_logprob += obj.logprob
+
+      for word in obj.english.split():
+        (state, word_logprob) = lm.score(state, word)
+        e_logprob += word_logprob
+
+      if i == 0:
+        reordering_logprob += abs(obj.start - (-1) - 1) * math.log(0.9)
+      else:
+        reordering_logprob += abs(obj.start - (l[i-1].end) - 1) * math.log(0.9)
+
+    e_logprob += lm.end(state)
+    return e_logprob + fe_logprob + reordering_logprob
 
   if opts.verbose:
     def extract_tm_logprob(h):
