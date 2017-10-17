@@ -183,20 +183,22 @@ for f in french:
   # Greedy
   while True:
     s_current = copy.deepcopy(current)
-    s = s_current[-1][1]
+    s = s_current[0][1]
     for cur, _ in current:
       for h in get_neighbors(cur, tm, obj):
         c = score(h, tm)
         if c > s:
-          i = bisect.bisect(s_current, c)
           if len(s_current) == opts.num_greedy:
             s_current.pop(0)
+          i = bisect.bisect([x[1] for x in s_current], c)
           s_current.insert(i, (h, c))
-          s = s_current[-1][1]
+          # print i, c, s, [x[1] for x in s_current]
+          s = s_current[0][1]
     if current == s_current:
       break
     current = s_current
 
+  # print len(set([x[1] for x in current]
   winner = current[-1][0]
   def extract_english(h): 
     return ' '.join([t.english for t in h])
