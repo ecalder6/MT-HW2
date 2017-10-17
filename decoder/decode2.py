@@ -4,6 +4,7 @@ import sys
 import models
 from collections import namedtuple
 import math
+import bisect, copy
 
 optparser = optparse.OptionParser()
 optparser.add_option("-i", "--input", dest="input", default="data/input", help="File containing sentences to translate (default=data/input)")
@@ -13,6 +14,7 @@ optparser.add_option("-n", "--num_sentences", dest="num_sents", default=sys.maxi
 optparser.add_option("-k", "--translations-per-phrase", dest="k", default=5, type="int", help="Limit on number of translations to consider per phrase (default=1)")
 optparser.add_option("-s", "--stack-size", dest="s", default=1, type="int", help="Maximum stack size (default=1)")
 optparser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,  help="Verbose mode (default=off)")
+optparser.add_option("-m", "--num_greedy", dest="num_greedy", type="int", default=5,  help="Number of greedy solutions to keep")
 opts = optparser.parse_args()[0]
 
 def extract_english(h): 
@@ -164,32 +166,37 @@ for f in french:
                 if lm_state2 not in stacks[j] or stacks[j][lm_state2].logprob < logprob2: # second case is recombination
                   stacks[j][lm_state2] = new_hypothesis
 
-  winner = max(stacks[-1].itervalues(), key=lambda h: h.logprob)
-  h = winner
-  list_version = []
-  obj = namedtuple("obj", "english, french, logprob, start, end")
-  while h is not None:
-    if h.phrase is None:
-      break
-    list_version.append(obj(h.phrase.english, h.french, h.phrase.logprob, h.lm_state[1] + 1 - len(h.french), h.lm_state[1]))
-    h = h.predecessor
-  list_version = list_version[::-1]
+  current = []
+  for h in sorted(stacks[-1].itervalues(), key=lambda h: h.logprob, reverse=True)[:opts.num_greedy]:
+    list_version = []
+    obj = namedtuple("obj", "english, french, logprob, start, end")
+    while h is not None:
+      if h.phrase is None:
+        break
+      list_version.append(obj(h.phrase.english, h.french, h.phrase.logprob, h.lm_state[1] + 1 - len(h.french), h.lm_state[1]))
+      h = h.predecessor
+    list_version = list_version[::-1]
+    current.append(list_version)
 
+  current = [(cur, score(cur, tm)) for cur in current]
+  current.sort(key=lambda x:x[1], reverse=True)
   # Greedy
-  current = list_version
   while True:
-    s_current = score(current, tm)
-    s = s_current
-    best = None
-    for h in get_neighbors(current, tm, obj):
-      c = score(h, tm)
-      if c > s:
-        s = c
-        best = h
-    if s == s_current:
+    s_current = copy.deepcopy(current)
+    s = s_current[-1][1]
+    for cur, _ in current:
+      for h in get_neighbors(cur, tm, obj):
+        c = score(h, tm)
+        if c > s:
+          i = bisect.bisect(s_current, c)
+          s_current.pop()
+          s_current.insert(i, (h, c))
+          s = s_current[-1][1]
+    if current == s_current:
       break
-    current = best
-  winner = current
+    current = s_current
+
+  winner = current[0][0]
   def extract_english(h): 
     return ' '.join([t.english for t in h])
 
