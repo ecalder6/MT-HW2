@@ -29,9 +29,10 @@ def get_neighbors(h, tm, obj):
     
     #swap
     if i < len(h) -1:
-      new_hyp = list(h)
-      new_hyp[i], new_hyp[i+1] = new_hyp[i+1], new_hyp[i]
-      hypotheses.append(new_hyp)
+      for j in range(i):
+        new_hyp = list(h)
+        new_hyp[j], new_hyp[i] = new_hyp[i], new_hyp[j]
+        hypotheses.append(new_hyp)
 
     #replacement
     for translation in tm[h[i][1]]:
@@ -90,7 +91,7 @@ def score(l, tm, lambda_lm = 1, lambda_tm = 1, lambda_w = 1, lambda_d = 1, alpha
       reordering_logprob += abs(obj.start - (l[i-1].end) - 1) * math.log(0.9)
 
   e_logprob += lm.end(state)
-  return e_logprob + fe_logprob + reordering_logprob
+  return e_logprob + fe_logprob + .001 * reordering_logprob
 
 tm = models.TM(opts.tm, opts.k)
 lm = models.LM(opts.lm)
@@ -185,7 +186,8 @@ for f in french:
     s_current = copy.deepcopy(current)
     s = s_current[0][1]
     for cur, _ in current:
-      for h in get_neighbors(cur, tm, obj):
+      neighbors = get_neighbors(cur, tm, obj)
+      for h in neighbors:
         c = score(h, tm)
         if c > s:
           if len(s_current) == opts.num_greedy:
@@ -198,7 +200,7 @@ for f in french:
       break
     current = s_current
 
-  # print len(set([x[1] for x in current]
+  # print len(set([x[1] for x in current]))
   winner = current[-1][0]
   def extract_english(h): 
     return ' '.join([t.english for t in h])
