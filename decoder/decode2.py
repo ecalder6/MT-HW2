@@ -189,7 +189,8 @@ for f in french:
         c = score(h, tm)
         if c > s:
           i = bisect.bisect(s_current, c)
-          s_current.pop(0)
+          if len(s_current) == opts.num_greedy:
+            s_current.pop(0)
           s_current.insert(i, (h, c))
           s = s_current[-1][1]
     if current == s_current:
