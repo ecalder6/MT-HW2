@@ -179,7 +179,7 @@ for f in french:
     current.append(list_version)
 
   current = [(cur, score(cur, tm)) for cur in current]
-  current.sort(key=lambda x:x[1], reverse=True)
+  current.sort(key=lambda x:x[1])
   # Greedy
   while True:
     s_current = copy.deepcopy(current)
@@ -189,14 +189,14 @@ for f in french:
         c = score(h, tm)
         if c > s:
           i = bisect.bisect(s_current, c)
-          s_current.pop()
+          s_current.pop(0)
           s_current.insert(i, (h, c))
           s = s_current[-1][1]
     if current == s_current:
       break
     current = s_current
 
-  winner = current[0][0]
+  winner = current[-1][0]
   def extract_english(h): 
     return ' '.join([t.english for t in h])
 
