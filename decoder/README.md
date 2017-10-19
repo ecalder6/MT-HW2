@@ -1,33 +1,17 @@
-There are two python programs here (-h for usage):
+Achintya Gopal
+Eric Calder
+Philip Piantone
 
--`decode` translates input sentences from French to English.
--`grade` computes the model score of a translated sentence.
+Baseline
+```bash
+python decode.py -k 10 -s 100
+```
 
-These commands work in a pipeline. For example:
+Greedy with m best neighbors:
+This command takes a while to run and produces our result on the leaderboard
+```bash
+python decode3.py -k 10 -s 100 -m 50
+```
 
-    > python decode | python compute-model-score
-
-There is also a module:
-
--`model.py` implements very simple interfaces for language models
- and translation models, so you don't have to. 
-
-You can finish the assignment without modifying this file at all. 
-You should look at it if you need to understand the interface
-to the translation and language model.
-
-The `data` directory contains files derived from the Canadian Hansards,
-originally aligned by Ulrich Germann:
-
--`input`: French sentences to translate.
-
--`tm`: a phrase-based translation model. Each line is in the form:
-
-    French phrase ||| English phrase ||| log_10(translation_prob)
-
--`lm`: a trigram language model file in ARPA format.
-
-    log_10(ngram_prob)   ngram   log_10(backoff_prob)
-
-The language model and translation model are computed from the data 
-in the align directory, using alignments from the Berkeley aligner.
+We also have a program called decode2.py that is our iteration of the greedy
+algorithm with m best neighbors but we improved it and got decode3.py.
