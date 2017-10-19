@@ -129,7 +129,6 @@ for f in french:
     sent.insert(0, (cur[1], cur[3]))
     cur = cur[2]
 
-  #print sent
             
   logprob = h.logprob + phrase.logprob
   lm_state = h.lm_state
@@ -141,19 +140,15 @@ for f in french:
   for elem in sent[1:]:
     lm_state = elem[0]
     for word in elem[1].english.split():
-      print word, word_logprob
       (lm_state, word_logprob) = lm.score2(lm_state, word)
       logprob += word_logprob
-  print logprob
   #loop until no better changes are produced
   #while True:
   #  cur_best = winner[0]
   #  cur_hyp = winner
   #  #get all neighbors
 
-  #print extract_english(winner)
-  print winner
-  break
+  print extract_english(winner)
 
 
   if opts.verbose:
