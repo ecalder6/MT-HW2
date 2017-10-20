@@ -7,11 +7,16 @@ Baseline
 python decode.py -k 10 -s 100
 ```
 
+Greedy algorithm with m best neighbors
+```bash
+python decode2.py -k 10 -s 100
+```
 Greedy with m best neighbors:
 This command takes a while to run and produces our result on the leaderboard
 ```bash
 python decode3.py -k 10 -s 100 -m 50
 ```
 
-We also have a program called decode2.py that is our iteration of the greedy
-algorithm with m best neighbors but we improved it and got decode3.py.
+The difference between the second and third program is that the second will get
+the top m hypotheses and allows for duplicates and the third will remove
+duplicates allowing for a larger search space in the third.
