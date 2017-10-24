@@ -124,7 +124,7 @@ class BiRNNLM(nn.Module):
 
 class BiGRU(nn.Module):
 
-    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, dropout=None):
+    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, dropout=0.4):
         super(BiGRU, self).__init__()
 
         self.vocab_size = vocab_size
@@ -177,7 +177,14 @@ class BiGRU(nn.Module):
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         for t, step in enumerate(reversed(encode)):
             # print(seq_length-t-1)
-            total_h2[t] = h
+            total_h2[seq_length-t-1] = h
+            if self.dropout and self.training:
+                step_mask = Variable(torch.bernoulli(
+                    torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                h_mask = Variable(torch.bernoulli(
+                    torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                step = step * step_mask
+                h = h * h_mask
             if t == seq_length - 1:
                 break
 
