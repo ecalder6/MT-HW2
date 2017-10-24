@@ -87,25 +87,27 @@ class BiRNNLM(nn.Module):
 
         for t, step in enumerate(encode):
             total_h1[t] = h
-            # print(t)
+            #print(t)
             if t == seq_length - 1:
                 break
             a = step.matmul(self.W_x1) + self.b_x1
             b = h.matmul(self.W_h1) + self.b_h1
             c = a + b
             h = self.sigmoid(c)
+            #total_h1[t] = h
 
         h = self.init_hidden(batch_size)
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         for t, step in enumerate(reversed(encode)):
             # print(seq_length-t-1)
-            total_h2[t] = h
+            total_h2[seq_length - t -1] = h
             if t == seq_length - 1:
                 break
             a = step.matmul(self.W_x2) + self.b_x2
-            b = h.matmul(self.W_h2) + self.b_x2
+            b = h.matmul(self.W_h2) + self.b_h2
             c = a + b
             h = self.sigmoid(c)
+            #total_h2[t] = h
 
         total_h = torch.cat((total_h1, total_h2), 2)
         a = total_h.matmul(self.output)
