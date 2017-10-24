@@ -21,12 +21,12 @@ class RNNLM(nn.Module):
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
 
-        self.embeddings = Variable(torch.randn(vocab_size, embedding_size), requires_grad=True)
-        self.W_x = Variable(torch.randn(embedding_size, hidden_size), requires_grad=True)
-        self.b_x = Variable(torch.randn(hidden_size), requires_grad=True)
-        self.W_h = Variable(torch.randn(hidden_size, hidden_size), requires_grad=True)
-        self.b_h = Variable(torch.randn(hidden_size), requires_grad=True)
-        self.output = Variable(torch.randn(hidden_size, vocab_size), requires_grad=True)
+        self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
+        self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+        self.b_x = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+        self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
+        self.b_h = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+        self.output = nn.Parameter(torch.randn(hidden_size, vocab_size), requires_grad=True)
 
     def forward(self, x):
         encode = self.embeddings[x.data,:]
@@ -35,7 +35,7 @@ class RNNLM(nn.Module):
         h = self.init_hidden(batch_size)
         total_h = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         for t, step in enumerate(encode):
-            print(t)
+            # print(t)
             a = step.matmul(self.W_x) + self.b_x
             b = h.matmul(self.W_h) + self.b_h
             c = a + b
@@ -64,19 +64,19 @@ class BiRNNLM(nn.Module):
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
 
-        self.embeddings = Variable(torch.randn(vocab_size, embedding_size), requires_grad=True)
+        self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
 
-        self.W_x1 = Variable(torch.randn(embedding_size, hidden_size), requires_grad=True)
-        self.b_x1 = Variable(torch.randn(hidden_size), requires_grad=True)
-        self.W_h1 = Variable(torch.randn(hidden_size, hidden_size), requires_grad=True)
-        self.b_h1 = Variable(torch.randn(hidden_size), requires_grad=True)
+        self.W_x1 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+        self.b_x1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+        self.W_h1 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
+        self.b_h1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
 
-        self.W_x2 = Variable(torch.randn(embedding_size, hidden_size), requires_grad=True)
-        self.b_x2 = Variable(torch.randn(hidden_size), requires_grad=True)
-        self.W_h2 = Variable(torch.randn(hidden_size, hidden_size), requires_grad=True)
-        self.b_h2 = Variable(torch.randn(hidden_size), requires_grad=True)
+        self.W_x2 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+        self.b_x2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+        self.W_h2 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
+        self.b_h2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
 
-        self.output = Variable(torch.randn(2*hidden_size, vocab_size), requires_grad=True)
+        self.output = nn.Parameter(torch.randn(2*hidden_size, vocab_size), requires_grad=True)
 
     def forward(self, x):
         encode = self.embeddings[x.data,:]
@@ -87,7 +87,7 @@ class BiRNNLM(nn.Module):
 
         for t, step in enumerate(encode):
             total_h1[t] = h
-            print(t)
+            # print(t)
             if t == seq_length - 1:
                 break
             a = step.matmul(self.W_x1) + self.b_x1
@@ -98,7 +98,7 @@ class BiRNNLM(nn.Module):
         h = self.init_hidden(batch_size)
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         for t, step in enumerate(reversed(encode)):
-            print(seq_length-t-1)
+            # print(seq_length-t-1)
             total_h2[t] = h
             if t == seq_length - 1:
                 break
@@ -130,7 +130,7 @@ class BiGRU(nn.Module):
         self.embedding_size = embedding_size
         self.dropout = dropout
 
-        self.embeddings = Variable(torch.randn(vocab_size, embedding_size), requires_grad=True)
+        self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
         self.W_z1 = nn.Linear(embedding_size + hidden_size, 1)
         self.W_r1 = nn.Linear(embedding_size + hidden_size, 1)
         self.W_h1 = nn.Linear(embedding_size + hidden_size, hidden_size)
@@ -153,7 +153,7 @@ class BiGRU(nn.Module):
 
         for t, step in enumerate(encode):
             total_h1[t] = h
-            print(t)
+            # print(t)
 
             if self.dropout and self.training:
                 step_mask = Variable(torch.bernoulli(
@@ -174,7 +174,7 @@ class BiGRU(nn.Module):
         h = self.init_hidden(batch_size)
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         for t, step in enumerate(reversed(encode)):
-            print(seq_length-t-1)
+            # print(seq_length-t-1)
             total_h2[t] = h
             if t == seq_length - 1:
                 break

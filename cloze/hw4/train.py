@@ -57,6 +57,13 @@ def main(options):
     cuda.set_device(options.gpuid[0])
 
   train, dev, test, vocab = torch.load(open(options.data_file, 'rb'), pickle_module=dill)
+
+  # print(len(test))
+  # for sent in test:
+  #   print(type(vocab.vectors))
+  #   for x in sent:
+  #     print(x, vocab.itos[x])
+  #   return
   train_in = get_lm_input(train)
   train_out = get_lm_output(train)
   dev_in = get_lm_input(dev)
@@ -68,7 +75,7 @@ def main(options):
   batched_dev_out, batched_dev_out_mask, _ = utils.tensor.advanced_batchize(dev_out, options.batch_size, vocab.stoi["<pad>"])
 
   vocab_size = len(vocab)
-
+  print(len(train))
   rnnlm = RNNLM(vocab_size)
   if use_cuda > 0:
     rnnlm.cuda()
@@ -84,6 +91,7 @@ def main(options):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_in))):
+      print(i)
       train_in_batch = Variable(batched_train_in[batch_i])  # of size (seq_len, batch_size)
       train_out_batch = Variable(batched_train_out[batch_i])  # of size (seq_len, batch_size)
       train_in_mask = Variable(batched_train_in_mask[batch_i])
