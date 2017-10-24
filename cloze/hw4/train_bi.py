@@ -61,7 +61,6 @@ def main(options):
 
   # main training loop
   last_dev_avg_loss = float("inf")
-  rnnln.train()
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
@@ -88,7 +87,6 @@ def main(options):
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
-    rnnln.eval()
     for batch_i in range(len(batched_dev)):
       dev_batch = Variable(batched_dev[batch_i], volatile=True)
       dev_mask = Variable(batched_dev_mask[batch_i], volatile=True)
