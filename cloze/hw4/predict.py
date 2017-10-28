@@ -49,24 +49,14 @@ def main(options):
         rnnlm.cpu()
 
     rnnlm.eval()
-    for test_batch, test_mask in zip(batched_test, batched_test_mask):
-        test_batch = Variable(test_batch)  # of size (seq_len, batch_size)
-        test_mask = Variable(test_mask)
-        if use_cuda:
-            test_batch = test_batch.cuda()
-            test_mask = test_mask.cuda()
-        sys_out_batch = rnnlm(test_batch)
-        test_in_mask = test_mask.view(-1)
-        test_in_mask = test_in_mask.unsqueeze(1).expand(len(test_in_mask), vocab_size)
-        test_out_mask = test_mask.view(-1)
-        sys_out_batch = sys_out_batch.view(-1, vocab_size)
-        test_out_batch = test_batch.view(-1)
-        sys_out_batch = sys_out_batch.masked_select(test_in_mask).view(-1, vocab_size)
-        test_out_batch = test_out_batch.masked_select(test_out_mask)
+    for line in test:
+        test_in = Variable(line).unsqueeze(1)
+        test_out = rnnlm(test_in)
+        test_out = test_out.view(-1, vocab_size)
         cur = []
-        for i in range(len(test_out_batch)):
-            if vocab.itos[test_out_batch.data[i]] == '<blank>':
-                _, argmax = torch.max(sys_out_batch[i], 0)
+        for i in range(len(line)):
+            if vocab.itos[line[i]] == '<blank>':
+                _, argmax = torch.max(test_out[i], 0)
                 cur.append(vocab.itos[argmax.data[0]])
         print(' '.join(cur))
         
