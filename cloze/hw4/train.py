@@ -75,7 +75,7 @@ def main(options):
   batched_dev_out, batched_dev_out_mask, _ = utils.tensor.advanced_batchize(dev_out, options.batch_size, vocab.stoi["<pad>"])
 
   vocab_size = len(vocab)
-  print(len(train))
+  #print(len(train))
   rnnlm = RNNLM(vocab_size)
   if use_cuda > 0:
     rnnlm.cuda()
@@ -91,7 +91,7 @@ def main(options):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_in))):
-      print(i)
+      #print(i)
       train_in_batch = Variable(batched_train_in[batch_i])  # of size (seq_len, batch_size)
       train_out_batch = Variable(batched_train_out[batch_i])  # of size (seq_len, batch_size)
       train_in_mask = Variable(batched_train_in_mask[batch_i])
@@ -103,6 +103,7 @@ def main(options):
         train_out_mask = train_out_mask.cuda()
 
       sys_out_batch = rnnlm(train_in_batch)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
+      print(type(sys_out_batch))
       train_in_mask = train_in_mask.view(-1)
       train_in_mask = train_in_mask.unsqueeze(1).expand(len(train_in_mask), vocab_size)
       train_out_mask = train_out_mask.view(-1)

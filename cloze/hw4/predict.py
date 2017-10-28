@@ -37,7 +37,8 @@ def main(options):
 
     train, dev, test, vocab = torch.load(open(options.data_file, 'rb'), pickle_module=dill)
 
-    batched_test, batched_test_mask, _ = utils.tensor.advanced_batchize(test, 1, vocab.stoi["<pad>"])
+    batched_test, batched_test_mask = utils.tensor.advanced_batchize_no_sort(test, 1, vocab.stoi["<pad>"])
+    #batched_test, batched_test_mask, _ = utils.tensor.advanced_batchize(test, 1, vocab.stoi["<pad>"])
 
     vocab_size = len(vocab)
 
@@ -68,6 +69,7 @@ def main(options):
                 _, argmax = torch.max(sys_out_batch[i], 0)
                 cur.append(vocab.itos[argmax.data[0]])
         print(' '.join(cur))
+        
 
 if __name__ == "__main__":
     ret = parser.parse_known_args()
