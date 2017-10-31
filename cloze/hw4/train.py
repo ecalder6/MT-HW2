@@ -82,8 +82,9 @@ def main(options):
   else:
     rnnlm.cpu()
 
+  #print options.optimizer
   criterion = torch.nn.NLLLoss()
-  optimizer = eval("torch.optim." + options.optimizer)(rnnlm.parameters(), options.learning_rate)
+  #optimizer = eval("torch.optim." + options.optimizer)(rnnlm.parameters(), options.learning_rate)
 
   # main training loop
   last_dev_avg_loss = float("inf")
@@ -102,7 +103,7 @@ def main(options):
         train_in_mask = train_in_mask.cuda()
         train_out_mask = train_out_mask.cuda()
 
-      sys_out_batch = rnnlm(train_in_batch, use_cuda=use_cuda)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
+      sys_out_batch = rnnlm(train_in_batch)#, use_cuda=use_cuda)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
       #print(type(sys_out_batch))
       train_in_mask = train_in_mask.view(-1)
       train_in_mask = train_in_mask.unsqueeze(1).expand(len(train_in_mask), vocab_size)
@@ -113,9 +114,9 @@ def main(options):
       train_out_batch = train_out_batch.masked_select(train_out_mask)
       loss = criterion(sys_out_batch, train_out_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-      optimizer.zero_grad()
+      #optimizer.zero_grad()
       loss.backward()
-      optimizer.step()
+      #optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -130,7 +131,7 @@ def main(options):
         dev_in_mask = dev_in_mask.cuda()
         dev_out_mask = dev_out_mask.cuda()
 
-      sys_out_batch = rnnlm(dev_in_batch)
+      sys_out_batch = rnnlm(dev_in_batch).cuda()
       dev_in_mask = dev_in_mask.view(-1)
       dev_in_mask = dev_in_mask.unsqueeze(1).expand(len(dev_in_mask), vocab_size)
       dev_out_mask = dev_out_mask.view(-1)

@@ -1,7 +1,7 @@
 import torch
 import torch.utils.data
 import torch.nn as nn
-import torch.cunn as cunn
+#import torch.cunn as cunn
 import torch.optim as optim
 from torch.autograd import Variable
 from torchvision import datasets, transforms
@@ -26,16 +26,16 @@ class RNNLM(nn.Module):
         self.use_cuda = use_cuda
 
         if use_cuda:
-            self.embeddings = cunn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
-            self.W_x = cunn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
-            self.b_x = cunn.Parameter(torch.randn(hidden_size), requires_grad=True)
-            self.W_h = cunn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
-            self.b_h = cunn.Parameter(torch.randn(hidden_size), requires_grad=True)
-            self.output = cunn.Parameter(torch.randn(hidden_size, vocab_size), requires_grad=True)
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True).cuda()
+            self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True).cuda()
+            self.b_x = nn.Parameter(torch.randn(hidden_size), requires_grad=True).cuda()
+            self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True).cuda()
+            self.b_h = nn.Parameter(torch.randn(hidden_size), requires_grad=True).cuda()
+            self.output = nn.Parameter(torch.randn(hidden_size, vocab_size), requires_grad=True).cuda()
 
         else:
             self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
-            self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+   	    self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
             self.b_x = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
             self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
             self.b_h = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
@@ -48,8 +48,8 @@ class RNNLM(nn.Module):
         h = self.init_hidden(batch_size)
         total_h = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
         if self.use_cuda:
-            total_h = Variable(torch.FloatTensor(seq_length, batch_size,
-                self.hidden_size)).cuda()
+            h = h.cuda()
+            total_h = total_h.cuda()
 
         
         for t, step in enumerate(encode):
