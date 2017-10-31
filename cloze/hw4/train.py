@@ -76,7 +76,7 @@ def main(options):
 
   vocab_size = len(vocab)
   #print(len(train))
-  rnnlm = RNNLM(vocab_size)
+  rnnlm = RNNLM(vocab_size, use_cuda=use_cuda)
   if use_cuda > 0:
     rnnlm.cuda()
   else:
@@ -102,8 +102,8 @@ def main(options):
         train_in_mask = train_in_mask.cuda()
         train_out_mask = train_out_mask.cuda()
 
-      sys_out_batch = rnnlm(train_in_batch)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
-      print(type(sys_out_batch))
+      sys_out_batch = rnnlm(train_in_batch, use_cuda=use_cuda)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
+      #print(type(sys_out_batch))
       train_in_mask = train_in_mask.view(-1)
       train_in_mask = train_in_mask.unsqueeze(1).expand(len(train_in_mask), vocab_size)
       train_out_mask = train_out_mask.view(-1)
