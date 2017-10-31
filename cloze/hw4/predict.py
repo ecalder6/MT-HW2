@@ -1,3 +1,4 @@
+from __future__ import print_function
 import utils.tensor
 import utils.rand
 
@@ -49,16 +50,50 @@ def main(options):
         rnnlm.cpu()
 
     rnnlm.eval()
+    m = 0
     for line in test:
+        print(m, file=sys.stderr)
+        m += 1
+        blanks = []
+        for i in range(len(line)):
+            if vocab.itos[line[i]] == '<blank>':
+                blanks.append(i)
+        # print(blanks)
+        # print(line)
         test_in = Variable(line).unsqueeze(1)
         test_out = rnnlm(test_in)
         test_out = test_out.view(-1, vocab_size)
         cur = []
-        for i in range(len(line)):
-            if vocab.itos[line[i]] == '<blank>':
-                _, argmax = torch.max(test_out[i], 0)
-                cur.append(vocab.itos[argmax.data[0]])
-        print(' '.join(cur))
+        newCur = []
+        for i in blanks:
+            # if vocab.itos[line[i]] == '<blank>':
+                # print(test_out[i][1:])
+            _, argmax = torch.max(test_out[i][1:], 0)
+            newCur.append(argmax.data[0] + 1)
+        count = 0
+        while newCur != cur and count < 20:
+            # print(7)
+            count += 1
+            # print(cur, newCur)
+            cur = newCur
+            newCur = []
+            # print(cur)
+            for j, i in enumerate(blanks):
+                # print(j, i, blanks)
+                line[i] = cur[j]
+            test_in = Variable(line).unsqueeze(1)
+            test_out = rnnlm(test_in)
+            test_out = test_out.view(-1, vocab_size)
+            for i in blanks:
+                # if vocab.itos[line[i]] == '<blank>':
+                    # print(test_out[i][1:])
+                _, argmax = torch.max(test_out[i][1:], 0)
+                newCur.append(argmax.data[0] + 1)
+            # print(line)
+        cur = []
+        for val in newCur:
+            cur.append(vocab.itos[val])
+        print(' '.join(cur).encode('utf-8').strip())
         
 
 if __name__ == "__main__":
