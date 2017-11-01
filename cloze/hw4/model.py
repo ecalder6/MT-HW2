@@ -300,6 +300,12 @@ class BiLSTM(nn.Module):
         self.sigmoid = nn.Sigmoid()
         # self.softmax = nn.LogSoftmax()
         self.tanh = nn.Tanh()
+        self.reset_parameters()
+
+    def reset_parameters(self):
+      stdv = 1.0 / math.sqrt(self.hidden_size)
+      for weight in self.parameters():
+        weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x):
         encode = self.embeddings[x.data,:]
