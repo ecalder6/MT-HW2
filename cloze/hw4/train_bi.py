@@ -50,7 +50,7 @@ def main(options):
 
   vocab_size = len(vocab)
 
-  rnnlm = BiRNNLM(vocab_size)
+  rnnlm = BiRNNLM(vocab_size, use_cuda=use_cuda)
   if use_cuda > 0:
     rnnlm.cuda()
   else:
@@ -67,14 +67,16 @@ def main(options):
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train))):
       train_batch = Variable(batched_train[batch_i])  # of size (seq_len, batch_size)
       train_mask = Variable(batched_train_mask[batch_i])
+      train_in_mask = train_mask.view(-1)
+      train_out_mask = train_mask.view(-1)
       if use_cuda:
         train_batch = train_batch.cuda()
         train_mask = train_mask.cuda()
+        train_in_mask = train_in_mask.cuda()
+        train_out_mask = train_out_mask.cuda()
 
       sys_out_batch = rnnlm(train_batch)  # (seq_len, batch_size, vocab_size) # TODO: substitute this with your module
-      train_in_mask = train_mask.view(-1)
       train_in_mask = train_in_mask.unsqueeze(1).expand(len(train_in_mask), vocab_size)
-      train_out_mask = train_mask.view(-1)
       sys_out_batch = sys_out_batch.view(-1, vocab_size)
       train_out_batch = train_batch.view(-1)
       sys_out_batch = sys_out_batch.masked_select(train_in_mask).view(-1, vocab_size)

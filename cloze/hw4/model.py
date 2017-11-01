@@ -75,26 +75,43 @@ class RNNLM(nn.Module):
 
 class BiRNNLM(nn.Module):
 
-    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32):
+    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, use_cuda=False):
         super(BiRNNLM, self).__init__()
 
         self.vocab_size = vocab_size
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
 
-        self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
+        self.use_cuda = use_cuda
+        if use_cuda:
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size).cuda(), requires_grad=True)
 
-        self.W_x1 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
-        self.b_x1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
-        self.W_h1 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
-        self.b_h1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+            self.W_x1 = nn.Parameter(torch.randn(embedding_size, hidden_size).cuda(), requires_grad=True)
+            self.b_x1 = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
+            self.W_h1 = nn.Parameter(torch.randn(hidden_size, hidden_size).cuda(), requires_grad=True)
+            self.b_h1 = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
 
-        self.W_x2 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
-        self.b_x2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
-        self.W_h2 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
-        self.b_h2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+            self.W_x2 = nn.Parameter(torch.randn(embedding_size, hidden_size).cuda(), requires_grad=True)
+            self.b_x2 = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
+            self.W_h2 = nn.Parameter(torch.randn(hidden_size, hidden_size).cuda(), requires_grad=True)
+            self.b_h2 = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
 
-        self.output = nn.Parameter(torch.randn(2*hidden_size, vocab_size), requires_grad=True)
+            self.output = nn.Parameter(torch.randn(2*hidden_size, vocab_size).cuda(), requires_grad=True)
+
+        else:
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
+
+            self.W_x1 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+            self.b_x1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+            self.W_h1 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
+            self.b_h1 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+
+            self.W_x2 = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+            self.b_x2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+            self.W_h2 = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
+            self.b_h2 = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
+
+            self.output = nn.Parameter(torch.randn(2*hidden_size, vocab_size), requires_grad=True)
 
     def forward(self, x):
         encode = self.embeddings[x.data,:]
@@ -102,6 +119,9 @@ class BiRNNLM(nn.Module):
         batch_size = x.size()[1]
         h = self.init_hidden(batch_size)
         total_h1 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
+        if self.use_cuda:
+            h = h.cuda()
+            total_h1 = total_h1.cuda()
 
         for t, step in enumerate(encode):
             total_h1[t] = h
@@ -116,6 +136,10 @@ class BiRNNLM(nn.Module):
 
         h = self.init_hidden(batch_size)
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
+        if self.use_cuda:
+            h = h.cuda()
+            total_h2 = total_h2.cuda()
+
         for t, step in enumerate(reversed(encode)):
             # print(seq_length-t-1)
             total_h2[seq_length - t -1] = h
