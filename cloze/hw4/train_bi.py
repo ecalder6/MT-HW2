@@ -92,14 +92,16 @@ def main(options):
     for batch_i in range(len(batched_dev)):
       dev_batch = Variable(batched_dev[batch_i], volatile=True)
       dev_mask = Variable(batched_dev_mask[batch_i], volatile=True)
+      dev_in_mask = dev_mask.view(-1)
+      dev_out_mask = dev_mask.view(-1)
       if use_cuda:
         dev_batch = dev_batch.cuda()
         dev_mask = dev_mask.cuda()
+        dev_in_mask = dev_in_mask.cuda()
+        dev_out_mask = dev_out_mask.cuda()
 
       sys_out_batch = rnnlm(dev_batch)
-      dev_in_mask = dev_mask.view(-1)
       dev_in_mask = dev_in_mask.unsqueeze(1).expand(len(dev_in_mask), vocab_size)
-      dev_out_mask = dev_mask.view(-1)
       sys_out_batch = sys_out_batch.view(-1, vocab_size)
       dev_out_batch = dev_batch.view(-1)
       sys_out_batch = sys_out_batch.masked_select(dev_in_mask).view(-1, vocab_size)

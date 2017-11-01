@@ -166,7 +166,7 @@ class BiRNNLM(nn.Module):
 
 class BiGRU(nn.Module):
 
-    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, dropout=0.4):
+    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, dropout=0.4, use_cuda=False):
         super(BiGRU, self).__init__()
 
         self.vocab_size = vocab_size
@@ -174,13 +174,23 @@ class BiGRU(nn.Module):
         self.embedding_size = embedding_size
         self.dropout = dropout
 
-        self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
-        self.W_z1 = nn.Linear(embedding_size + hidden_size, 1)
-        self.W_r1 = nn.Linear(embedding_size + hidden_size, 1)
-        self.W_h1 = nn.Linear(embedding_size + hidden_size, hidden_size)
-        self.W_z2 = nn.Linear(embedding_size + hidden_size, 1)
-        self.W_r2 = nn.Linear(embedding_size + hidden_size, 1)
-        self.W_h2 = nn.Linear(embedding_size + hidden_size, hidden_size)
+        self.use_cuda = use_cuda
+        if use_cuda:
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size).cuda(), requires_grad=True)
+            self.W_z1 = nn.Linear(embedding_size + hidden_size, 1).cuda()
+            self.W_r1 = nn.Linear(embedding_size + hidden_size, 1).cuda()
+            self.W_h1 = nn.Linear(embedding_size + hidden_size, hidden_size).cuda()
+            self.W_z2 = nn.Linear(embedding_size + hidden_size, 1).cuda()
+            self.W_r2 = nn.Linear(embedding_size + hidden_size, 1).cuda()
+            self.W_h2 = nn.Linear(embedding_size + hidden_size, hidden_size).cuda()
+        else:
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
+            self.W_z1 = nn.Linear(embedding_size + hidden_size, 1)
+            self.W_r1 = nn.Linear(embedding_size + hidden_size, 1)
+            self.W_h1 = nn.Linear(embedding_size + hidden_size, hidden_size)
+            self.W_z2 = nn.Linear(embedding_size + hidden_size, 1)
+            self.W_r2 = nn.Linear(embedding_size + hidden_size, 1)
+            self.W_h2 = nn.Linear(embedding_size + hidden_size, hidden_size)
 
         self.output = nn.Linear(2*hidden_size, vocab_size)
 
@@ -194,16 +204,25 @@ class BiGRU(nn.Module):
         batch_size = x.size()[1]
         h = self.init_hidden(batch_size)
         total_h1 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
+        if self.use_cuda:
+            h = h.cuda()
+            total_h1 = total_h1.cuda()
 
         for t, step in enumerate(encode):
             total_h1[t] = h
             # print(t)
 
             if self.dropout and self.training:
-                step_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
-                h_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                if self.use_cuda:
+                    step_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.embedding_size).cuda().fill_(1. - self.dropout)), requires_grad=False).cuda() / self.dropout
+                    h_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.hidden_size).cuda().fill_(1. - self.dropout)), requires_grad=False).cuda() / self.dropout
+                else:
+                    step_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                    h_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
                 step = step * step_mask
                 h = h * h_mask
 
@@ -217,14 +236,23 @@ class BiGRU(nn.Module):
 
         h = self.init_hidden(batch_size)
         total_h2 = Variable(torch.FloatTensor(seq_length, batch_size, self.hidden_size))
+        if self.use_cuda:
+            h = h.cuda()
+            total_h2 = total_h2.cuda()
         for t, step in enumerate(reversed(encode)):
             # print(seq_length-t-1)
             total_h2[seq_length-t-1] = h
             if self.dropout and self.training:
-                step_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
-                h_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                if self.use_cuda:
+                    step_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.embedding_size).cuda().fill_(1. - self.dropout)), requires_grad=False).cuda() / self.dropout
+                    h_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.hidden_size).cuda().fill_(1. - self.dropout)), requires_grad=False).cuda() / self.dropout
+                else:
+                    step_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                    h_mask = Variable(torch.bernoulli(
+                        torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
                 step = step * step_mask
                 h = h * h_mask
             if t == seq_length - 1:
