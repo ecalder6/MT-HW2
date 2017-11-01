@@ -84,7 +84,7 @@ def main(options):
 
   #print options.optimizer
   criterion = torch.nn.NLLLoss()
-  #optimizer = eval("torch.optim." + options.optimizer)(rnnlm.parameters(), options.learning_rate)
+  optimizer = eval("torch.optim." + options.optimizer)(rnnlm.parameters(), options.learning_rate)
 
   # main training loop
   last_dev_avg_loss = float("inf")
@@ -114,9 +114,9 @@ def main(options):
       train_out_batch = train_out_batch.masked_select(train_out_mask)
       loss = criterion(sys_out_batch, train_out_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-      #optimizer.zero_grad()
+      optimizer.zero_grad()
       loss.backward()
-      #optimizer.step()
+      optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0

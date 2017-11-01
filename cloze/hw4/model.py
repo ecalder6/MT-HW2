@@ -26,16 +26,16 @@ class RNNLM(nn.Module):
         self.use_cuda = use_cuda
 
         if use_cuda:
-            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True).cuda()
-            self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True).cuda()
-            self.b_x = nn.Parameter(torch.randn(hidden_size), requires_grad=True).cuda()
-            self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True).cuda()
-            self.b_h = nn.Parameter(torch.randn(hidden_size), requires_grad=True).cuda()
-            self.output = nn.Parameter(torch.randn(hidden_size, vocab_size), requires_grad=True).cuda()
+            self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size).cuda(), requires_grad=True)
+            self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size).cuda(), requires_grad=True)
+            self.b_x = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
+            self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size).cuda(), requires_grad=True)
+            self.b_h = nn.Parameter(torch.randn(hidden_size).cuda(), requires_grad=True)
+            self.output = nn.Parameter(torch.randn(hidden_size, vocab_size).cuda(), requires_grad=True)
 
         else:
             self.embeddings = nn.Parameter(torch.randn(vocab_size, embedding_size), requires_grad=True)
-   	    self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
+            self.W_x = nn.Parameter(torch.randn(embedding_size, hidden_size), requires_grad=True)
             self.b_x = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
             self.W_h = nn.Parameter(torch.randn(hidden_size, hidden_size), requires_grad=True)
             self.b_h = nn.Parameter(torch.randn(hidden_size), requires_grad=True)
