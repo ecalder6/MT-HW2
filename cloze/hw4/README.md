@@ -1,3 +1,28 @@
+Achintya Gopal agopal2
+Eric Calder ecalder6
+Philip Piantone ppianto1
+
+Uni-directional
+```bash
+python train.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file model
+```
+
+Bi-directional
+```bash
+python train_bi.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file model
+```
+
+GRU
+```bash
+python train_gru.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file model
+```
+
+LSTM
+```bash
+python train_lstm.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file model
+```
+
+
 GPU Runtimes:
 
     Part I: Uni-directional RNN Language Model

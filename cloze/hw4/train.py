@@ -131,7 +131,7 @@ def main(options):
         dev_in_mask = dev_in_mask.cuda()
         dev_out_mask = dev_out_mask.cuda()
 
-      sys_out_batch = rnnlm(dev_in_batch).cuda()
+      sys_out_batch = rnnlm(dev_in_batch)
       dev_in_mask = dev_in_mask.view(-1)
       dev_in_mask = dev_in_mask.unsqueeze(1).expand(len(dev_in_mask), vocab_size)
       dev_out_mask = dev_out_mask.view(-1)
