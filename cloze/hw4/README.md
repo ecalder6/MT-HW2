@@ -22,6 +22,8 @@ LSTM
 python train_lstm.py --data_file data/hw4_data.bin --optimizer Adam -lr 1e-2 --batch_size 48 --model_file model
 ```
 
+All our models are located in the file model.py
+
 
 GPU Runtimes:
 
