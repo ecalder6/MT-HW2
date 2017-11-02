@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.utils.data
 import torch.nn as nn
@@ -275,7 +276,7 @@ class BiGRU(nn.Module):
 
 class BiLSTM(nn.Module):
 
-    def __init__(self, vocab_size, hidden_size = 8, embedding_size=32, cell_size = 8, dropout=0.4):
+    def __init__(self, vocab_size, hidden_size = 32, embedding_size=128, cell_size = 32, dropout=0.6):
         super(BiLSTM, self).__init__()
 
         self.vocab_size = vocab_size
@@ -321,11 +322,11 @@ class BiLSTM(nn.Module):
 
             if self.dropout and self.training:
                 step_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                    torch.Tensor(batch_size, self.embedding_size).fill_(1. - self.dropout)), requires_grad=False)
                 h_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                    torch.Tensor(batch_size, self.hidden_size).fill_(1. - self.dropout)), requires_grad=False)
                 C_mask = Variable(torch.bernoulli(
-                    torch.Tensor(batch_size, self.cell_size).fill_(1. - self.dropout)), requires_grad=False) / self.dropout
+                    torch.Tensor(batch_size, self.cell_size).fill_(1. - self.dropout)), requires_grad=False) 
                 step = step * step_mask
                 h = h * h_mask
                 C = C * C_mask
