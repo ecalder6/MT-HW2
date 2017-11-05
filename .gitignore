@@ -101,4 +101,4 @@ ENV/
 .mypy_cache/
 
 checkpoint*
-hw5\data\model.param
+model.param
