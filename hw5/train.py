@@ -4,12 +4,13 @@ import utils.rand
 import argparse
 import dill
 import logging
+import sys
 
 import torch
 from torch import cuda
 from torch.autograd import Variable
 # from model import NMT
-from example_module import NMT
+import torch.nn as nn
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -22,6 +23,8 @@ parser.add_argument("--src_lang", default="de",
                     help="Source Language. (default = de)")
 parser.add_argument("--trg_lang", default="en",
                     help="Target Language. (default = en)")
+parser.add_argument("--original_model_file", required=True,
+                    help="Location to load the original model.")
 parser.add_argument("--model_file", required=True,
                     help="Location to dump the models.")
 parser.add_argument("--batch_size", default=1, type=int,
@@ -55,12 +58,33 @@ def main(options):
   batched_dev_trg, batched_dev_trg_mask, _ = utils.tensor.advanced_batchize(trg_dev, options.batch_size, trg_vocab.stoi["<pad>"])
 
   trg_vocab_size = len(trg_vocab)
+  original_model = torch.load(open(options.original_model_file, 'rb'))
 
-  nmt = NMT(trg_vocab_size) # TODO: add more arguments as necessary 
+  # Initialize encoder with weights parameters from original model
+  encoder = nn.LSTM(300, 512, bidirectional=True)
+
+  encoder.weight_ih_l0 = nn.Parameter(original_model['encoder.rnn.weight_ih_l0'])
+  encoder.weight_hh_l0 = nn.Parameter(original_model['encoder.rnn.weight_hh_l0'])
+  encoder.bias_ih_l0 = nn.Parameter(original_model['encoder.rnn.bias_ih_l0'])
+  encoder.bias_hh_l0 = nn.Parameter(original_model['encoder.rnn.bias_hh_l0'])
+
+  encoder.weight_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_ih_l0_reverse'])
+  encoder.weight_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_hh_l0_reverse'])
+  encoder.bias_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_ih_l0_reverse'])
+  encoder.bias_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_hh_l0_reverse'])
+
+  # Initialize decoder with weights parameters from original model
+  decoder = nn.LSTM(1324, 1024)
+
+  decoder.weight_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_ih'])
+  decoder.weight_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_hh'])
+  decoder.bias_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_ih'])
+  decoder.bias_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_hh'])
+
   if use_cuda > 0:
-    nmt.cuda()
+    encoder.cuda()
   else:
-    nmt.cpu()
+    encoder.cpu()
 
   criterion = torch.nn.NLLLoss()
   optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
@@ -81,7 +105,7 @@ def main(options):
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
 
-      sys_out_batch = nmt(train_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      sys_out_batch = encoder(train_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       train_trg_mask = train_trg_mask.view(-1)
       train_trg_batch = train_trg_batch.view(-1)
       train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
@@ -107,7 +131,7 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = nmt(dev_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      sys_out_batch = encoder(dev_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
