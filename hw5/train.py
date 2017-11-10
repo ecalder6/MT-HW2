@@ -9,7 +9,6 @@ import sys
 import torch
 from torch import cuda
 from torch.autograd import Variable
-# from model import NMT
 import torch.nn as nn
 
 logging.basicConfig(
@@ -83,16 +82,34 @@ def main(options):
 
   if use_cuda > 0:
     encoder.cuda()
+    decoder.cuda()
   else:
     encoder.cpu()
+    decoder.cpu()
+
+  # Initialize embeddings
+  encoder_embedding = nn.Embedding(36616, 300)
+  decoder_embegging = nn.Embedding(23262, 300)
+  encoder_embedding.weight = nn.Parameter(original_model['encoder.embeddings.emb_luts.0.weight'])
+  decoder_embegging.weight = nn.Parameter(original_model['decoder.embeddings.emb_luts.0.weight'])
+
+  # Initialize Ws
+  wi = Variable(original_model['decoder.attn.linear_in.weight'])
+  wo = Variable(original_model['decoder.attn.linear_out.weight'])
 
   criterion = torch.nn.NLLLoss()
-  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
+  encoder_optimizer = eval("torch.optim." + options.optimizer)(encoder.parameters(), options.learning_rate)
+  decoder_optimizer = eval("torch.optim." + options.optimizer)(decoder.parameters(), options.learning_rate)
+
+  soft_max = nn.Softmax()
 
   # main training loop
   last_dev_avg_loss = float("inf")
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
+
+    h_t_1 = Variable(torch.ones(1024))
+
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
@@ -104,19 +121,32 @@ def main(options):
         train_trg_batch = train_trg_batch.cuda()
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
+      encoder_input = encoder_embedding(train_trg_batch)
+      sys_out_batch, (encoder_hidden_states, _) = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
 
-      sys_out_batch = encoder(train_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
-      train_trg_mask = train_trg_mask.view(-1)
-      train_trg_batch = train_trg_batch.view(-1)
-      train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
-      train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
-      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-      sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
-      loss = criterion(sys_out_batch, train_trg_batch)
-      logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-      optimizer.zero_grad()
-      loss.backward()
-      optimizer.step()
+      s_vector = []
+      for hs in sys_out_batch:
+        score = hs.matmul(wi).matmul(h_t_1)
+        score = score.unsqueeze(0)
+        a_h_s = soft_max(score)
+        print a_h_s, hs.squeeze(0)
+        s_vector.append(a_h_s.squeeze(0).dot(hs.squeeze(0)))
+      s_tilda = sum(s_vector)
+      c_t = nn.Tanh(wo.matmul(torch.cat(s_tilda, h_t_1)))
+      sys.exit()
+      # train_trg_mask = train_trg_mask.view(-1)
+      # train_trg_batch = train_trg_batch.view(-1)
+      # train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
+      # train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
+      # sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
+      # sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
+      # loss = criterion(sys_out_batch, train_trg_batch)
+      # logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+      # encoder_optimizer.zero_grad()
+      # loss.backward()
+      # encoder_optimizer.step()
+
+      # len_s = len()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -131,7 +161,8 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      sys_out_batch = encoder(dev_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      encoder_input = encoder_embedding(dev_trg_batch)
+      sys_out_batch = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
@@ -147,7 +178,7 @@ def main(options):
     if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
       logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
       break
-    torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    torch.save(encoder, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
 
