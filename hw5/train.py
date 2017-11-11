@@ -11,6 +11,8 @@ from torch import cuda
 from torch.autograd import Variable
 import torch.nn as nn
 
+from model import NMT
+
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
@@ -26,7 +28,7 @@ parser.add_argument("--original_model_file", required=True,
                     help="Location to load the original model.")
 parser.add_argument("--model_file", required=True,
                     help="Location to dump the models.")
-parser.add_argument("--batch_size", default=1, type=int,
+parser.add_argument("--batch_size", default=4, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
                     help="Epochs through the data. (default=20)")
@@ -51,57 +53,86 @@ def main(options):
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
 
+  # print(src_vocab.itos[0])
+  # print(src_vocab.itos[len(src_vocab) - 1])
+  # min = len(src_vocab)
+  # max = 0
+  # for vec in src_train:
+  #   mintmp = torch.min(vec)
+  #   maxtmp = torch.max(vec)
+  #   if maxtmp > max:
+  #     max = maxtmp
+
+  #   if mintmp < min:
+  #     min = mintmp
+  # print(min, max)
+  # print(src_train[0])
+  # print(torch.min(src_train))
+  # print(torch.max(src_train))
+
   batched_train_src, batched_train_src_mask, _ = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<pad>"])
   batched_train_trg, batched_train_trg_mask, _ = utils.tensor.advanced_batchize(trg_train, options.batch_size, trg_vocab.stoi["<pad>"])
   batched_dev_src, batched_dev_src_mask, _ = utils.tensor.advanced_batchize(src_dev, options.batch_size, src_vocab.stoi["<pad>"])
   batched_dev_trg, batched_dev_trg_mask, _ = utils.tensor.advanced_batchize(trg_dev, options.batch_size, trg_vocab.stoi["<pad>"])
 
   trg_vocab_size = len(trg_vocab)
+  src_vocab_size = len(src_vocab)
   original_model = torch.load(open(options.original_model_file, 'rb'))
+  print(trg_vocab_size)
+  print(src_vocab_size)
+  # # Initialize encoder with weights parameters from original model
+  # encoder = nn.LSTM(300, 512, bidirectional=True)
 
-  # Initialize encoder with weights parameters from original model
-  encoder = nn.LSTM(300, 512, bidirectional=True)
+  # encoder.weight_ih_l0 = nn.Parameter(original_model['encoder.rnn.weight_ih_l0'])
+  # encoder.weight_hh_l0 = nn.Parameter(original_model['encoder.rnn.weight_hh_l0'])
+  # encoder.bias_ih_l0 = nn.Parameter(original_model['encoder.rnn.bias_ih_l0'])
+  # encoder.bias_hh_l0 = nn.Parameter(original_model['encoder.rnn.bias_hh_l0'])
 
-  encoder.weight_ih_l0 = nn.Parameter(original_model['encoder.rnn.weight_ih_l0'])
-  encoder.weight_hh_l0 = nn.Parameter(original_model['encoder.rnn.weight_hh_l0'])
-  encoder.bias_ih_l0 = nn.Parameter(original_model['encoder.rnn.bias_ih_l0'])
-  encoder.bias_hh_l0 = nn.Parameter(original_model['encoder.rnn.bias_hh_l0'])
+  # encoder.weight_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_ih_l0_reverse'])
+  # encoder.weight_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_hh_l0_reverse'])
+  # encoder.bias_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_ih_l0_reverse'])
+  # encoder.bias_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_hh_l0_reverse'])
 
-  encoder.weight_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_ih_l0_reverse'])
-  encoder.weight_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.weight_hh_l0_reverse'])
-  encoder.bias_ih_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_ih_l0_reverse'])
-  encoder.bias_hh_l0_reverse = nn.Parameter(original_model['encoder.rnn.bias_hh_l0_reverse'])
+  # # Initialize decoder with weights parameters from original model
+  # decoder = nn.LSTM(1324, 1024)
 
-  # Initialize decoder with weights parameters from original model
-  decoder = nn.LSTM(1324, 1024)
+  # decoder.weight_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_ih'])
+  # decoder.weight_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_hh'])
+  # decoder.bias_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_ih'])
+  # decoder.bias_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_hh'])
 
-  decoder.weight_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_ih'])
-  decoder.weight_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.weight_hh'])
-  decoder.bias_ih_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_ih'])
-  decoder.bias_hh_l0 = nn.Parameter(original_model['decoder.rnn.layers.0.bias_hh'])
+  # if use_cuda > 0:
+  #   encoder.cuda()
+  #   decoder.cuda()
+  # else:
+  #   encoder.cpu()
+  #   decoder.cpu()
 
-  if use_cuda > 0:
-    encoder.cuda()
-    decoder.cuda()
-  else:
-    encoder.cpu()
-    decoder.cpu()
+  # # Initialize embeddings
+  # encoder_embedding = nn.Embedding(36616, 300)
+  # decoder_embedding = nn.Embedding(23262, 300)
+  # encoder_embedding.weight = nn.Parameter(original_model['encoder.embeddings.emb_luts.0.weight'])
+  # decoder_embedding.weight = nn.Parameter(original_model['decoder.embeddings.emb_luts.0.weight'])
 
-  # Initialize embeddings
-  encoder_embedding = nn.Embedding(36616, 300)
-  decoder_embegging = nn.Embedding(23262, 300)
-  encoder_embedding.weight = nn.Parameter(original_model['encoder.embeddings.emb_luts.0.weight'])
-  decoder_embegging.weight = nn.Parameter(original_model['decoder.embeddings.emb_luts.0.weight'])
+  # # Initialize Ws
+  # wi = nn.Linear(1024,1024, bias=False)
+  # wi.weight = nn.Parameter(original_model['decoder.attn.linear_in.weight'])
 
-  # Initialize Ws
-  wi = Variable(original_model['decoder.attn.linear_in.weight'])
-  wo = Variable(original_model['decoder.attn.linear_out.weight'])
+  # wo = nn.Linear(2048, 1024, bias=False)
+  # wo.weight = nn.Parameter(original_model['decoder.attn.linear_out.weight'])
+
+  # generator = nn.Linear(1024, 23262)
+  # generator.weight = nn.Parameter(original_model['0.weight'])
+  # generator.bias = nn.Parameter(original_model['0.bias'])
 
   criterion = torch.nn.NLLLoss()
-  encoder_optimizer = eval("torch.optim." + options.optimizer)(encoder.parameters(), options.learning_rate)
-  decoder_optimizer = eval("torch.optim." + options.optimizer)(decoder.parameters(), options.learning_rate)
+  # encoder_optimizer = eval("torch.optim." + options.optimizer)(encoder.parameters(), options.learning_rate)
+  # decoder_optimizer = eval("torch.optim." + options.optimizer)(decoder.parameters(), options.learning_rate)
 
-  soft_max = nn.Softmax()
+  # soft_max = nn.Softmax()
+
+  nmt = NMT(original_model)
+  optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
 
   # main training loop
   last_dev_avg_loss = float("inf")
@@ -121,32 +152,78 @@ def main(options):
         train_trg_batch = train_trg_batch.cuda()
         train_src_mask = train_src_mask.cuda()
         train_trg_mask = train_trg_mask.cuda()
-      encoder_input = encoder_embedding(train_trg_batch)
-      sys_out_batch, (encoder_hidden_states, _) = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
 
-      s_vector = []
-      for hs in sys_out_batch:
-        score = hs.matmul(wi).matmul(h_t_1)
-        score = score.unsqueeze(0)
-        a_h_s = soft_max(score)
-        print a_h_s, hs.squeeze(0)
-        s_vector.append(a_h_s.squeeze(0).dot(hs.squeeze(0)))
-      s_tilda = sum(s_vector)
-      c_t = nn.Tanh(wo.matmul(torch.cat(s_tilda, h_t_1)))
-      sys.exit()
+      # encoder_input = encoder_embedding(train_trg_batch)
+      # sys_out_batch, (encoder_hidden_states, _) = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+
+      # h = Variable(torch.FloatTensor(sys_out_batch.size()[1], 1024).fill_(1./1024))
+      # c = Variable(torch.FloatTensor(sys_out_batch.size()[1], 1024).fill_(0))
+
+      # softmax = torch.nn.Softmax()
+      # tanh = torch.nn.Tanh()
+      # # _,w = torch.max(softmax(generator(h)), dim=1)
+      # w = softmax(generator(h))
+
+      # result = Variable(torch.FloatTensor(sys_out_batch.size()[0], sys_out_batch.size()[1], 23262))
+      # for i in range(sys_out_batch.size()[0]):
+      #   wht1 = wi(h).view(1, -1, 1024).expand_as(sys_out_batch)
+
+      #   score = softmax(torch.sum(sys_out_batch * wht1, dim=2)).view(sys_out_batch.size()[0],sys_out_batch.size()[1],1)
+
+      #   st = torch.sum(score * sys_out_batch, dim=0)
+      #   ct = tanh(wo(torch.cat([st, h], dim=1)))
+
+      #   _, w = torch.max(w, dim=1)
+      #   input = torch.cat([decoder_embedding(w), ct], dim=1)
+      #   input = input.view(1, input.size()[0], input.size()[1])
+
+      #   _,(b,c) = decoder(input, (h,c))
+      #   h = b[0]
+      #   c = c[0]
+
+      #   w = softmax(generator(h))
+      #   result[i] = w
+      # # result.append(w)
+      # sys_out_batch = result
+      print(train_src_batch.size())
+      sys_out_batch = nmt(train_src_batch, train_trg_batch.size()[0])
+      print(sys_out_batch.size())
+      # s_vector = []
+      # for hs in sys_out_batch:
+      #   score = hs.matmul(wi).matmul(h_t_1)
+      #   score = score.unsqueeze(0)
+      #   a_h_s = soft_max(score)
+      #   # print a_h_s, hs.squeeze(0)
+      #   s_vector.append(a_h_s.squeeze(0).dot(hs.squeeze(0)))
+      # s_tilda = sum(s_vector)
+      # c_t = nn.Tanh(wo.matmul(torch.cat(s_tilda, h_t_1)))
+
+      # sys.exit()
       # train_trg_mask = train_trg_mask.view(-1)
       # train_trg_batch = train_trg_batch.view(-1)
       # train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
       # train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
       # sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
       # sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
-      # loss = criterion(sys_out_batch, train_trg_batch)
-      # logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-      # encoder_optimizer.zero_grad()
-      # loss.backward()
-      # encoder_optimizer.step()
+      print(train_trg_mask.size())
+      train_trg_mask = train_trg_mask.view(-1)
+      train_trg_batch = train_trg_batch.view(-1)
+      train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
+      train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size - 1)
+      # print(trainin.size())
+      # print(train_trg_batch[:,:-1].size())
+      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size - 1)
+      print(trg_vocab_size)
+      print(train_trg_mask.size())
+      sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size - 1)
+      print(sys_out_batch.size())
 
-      # len_s = len()
+      loss = criterion(sys_out_batch, train_trg_batch)
+      logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+
+      optimizer.zero_grad()
+      loss.backward()
+      optimizer.step()
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
