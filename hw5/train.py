@@ -46,6 +46,10 @@ parser.add_argument("--gpuid", default=[], nargs='+', type=int,
 
 def main(options):
 
+  original_model = torch.load(open(options.original_model_file, 'rb'))
+
+  nmt = NMT(original_model)
+
   use_cuda = (len(options.gpuid) >= 1)
   if options.gpuid:
     cuda.set_device(options.gpuid[0])
@@ -53,33 +57,40 @@ def main(options):
   src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
 
-  # print(src_vocab.itos[0])
-  # print(src_vocab.itos[len(src_vocab) - 1])
-  # min = len(src_vocab)
-  # max = 0
-  # for vec in src_train:
-  #   mintmp = torch.min(vec)
-  #   maxtmp = torch.max(vec)
-  #   if maxtmp > max:
-  #     max = maxtmp
+  batched_test_src, batched_test_src_mask, _ = utils.tensor.advanced_batchize(src_test, 1, src_vocab.stoi["<pad>"])
+  batched_test_trg, batched_test_trg_mask, _ = utils.tensor.advanced_batchize(trg_test, 1, trg_vocab.stoi["<pad>"])
 
-  #   if mintmp < min:
-  #     min = mintmp
-  # print(min, max)
-  # print(src_train[0])
-  # print(torch.min(src_train))
-  # print(torch.max(src_train))
-
-  batched_train_src, batched_train_src_mask, _ = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<pad>"])
-  batched_train_trg, batched_train_trg_mask, _ = utils.tensor.advanced_batchize(trg_train, options.batch_size, trg_vocab.stoi["<pad>"])
+  batched_train_src, batched_train_src_mask, _ = utils.tensor.advanced_batchize(src_train, 1, src_vocab.stoi["<pad>"])
+  batched_train_trg, batched_train_trg_mask, _ = utils.tensor.advanced_batchize(trg_train, 1, trg_vocab.stoi["<pad>"])
   batched_dev_src, batched_dev_src_mask, _ = utils.tensor.advanced_batchize(src_dev, options.batch_size, src_vocab.stoi["<pad>"])
   batched_dev_trg, batched_dev_trg_mask, _ = utils.tensor.advanced_batchize(trg_dev, options.batch_size, trg_vocab.stoi["<pad>"])
 
   trg_vocab_size = len(trg_vocab)
   src_vocab_size = len(src_vocab)
-  original_model = torch.load(open(options.original_model_file, 'rb'))
-  print(trg_vocab_size)
-  print(src_vocab_size)
+
+  # for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
+  #     train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
+  #     train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
+  #     train_src_mask = Variable(batched_train_src_mask[batch_i])
+  #     train_trg_mask = Variable(batched_train_trg_mask[batch_i])
+  #     if use_cuda:
+  #       train_src_batch = train_src_batch.cuda()
+  #       train_trg_batch = train_trg_batch.cuda()
+  #       train_src_mask = train_src_mask.cuda()
+  #       train_trg_mask = train_trg_mask.cuda()
+
+
+  #     sys_out_batch = nmt(train_src_batch, train_trg_batch.size()[0])
+  #     # print(sys_out_batch.size())
+  #     _, sys_out_batch = torch.max(sys_out_batch, dim=2)
+  #     sys_out_batch = sys_out_batch.view(-1)
+  #     sent = []
+  #     # print(sys_out_batch)
+  #     for w in sys_out_batch:
+  #       # print(w)
+  #       sent.append(trg_vocab.itos[w.data[0]])
+  #     print(sent)
+
   # # Initialize encoder with weights parameters from original model
   # encoder = nn.LSTM(300, 512, bidirectional=True)
 
@@ -131,7 +142,6 @@ def main(options):
 
   # soft_max = nn.Softmax()
 
-  nmt = NMT(original_model)
   optimizer = eval("torch.optim." + options.optimizer)(nmt.parameters(), options.learning_rate)
 
   # main training loop
@@ -185,9 +195,7 @@ def main(options):
       #   result[i] = w
       # # result.append(w)
       # sys_out_batch = result
-      print(train_src_batch.size())
       sys_out_batch = nmt(train_src_batch, train_trg_batch.size()[0])
-      print(sys_out_batch.size())
       # s_vector = []
       # for hs in sys_out_batch:
       #   score = hs.matmul(wi).matmul(h_t_1)
@@ -238,24 +246,30 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      encoder_input = encoder_embedding(dev_trg_batch)
-      sys_out_batch = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      # encoder_input = encoder_embedding(dev_trg_batch)
+      # sys_out_batch = encoder(encoder_input)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
+      sys_out_batch = nmt(dev_src_batch, dev_trg_batch.size()[0])
+
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
       dev_trg_batch = dev_trg_batch.masked_select(dev_trg_mask)
-      dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
-      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-      sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
+      dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size - 1)
+
+      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size - 1)
+      sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size - 1)
+
       loss = criterion(sys_out_batch, dev_trg_batch)
       logging.debug("dev loss at batch {0}: {1}".format(batch_i, loss.data[0]))
       dev_loss += loss
+
     dev_avg_loss = dev_loss / len(batched_dev_in)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
 
     if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
       logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
       break
-    torch.save(encoder, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+
+    torch.save(nmt.state_dict(), open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
 
