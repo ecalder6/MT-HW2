@@ -7,8 +7,10 @@ torch.manual_seed(500)
 
 class NMT(nn.Module):
     """docstring for NMT"""
-    def __init__(self, src_vocab_size, trg_vocab_size):
+    def __init__(self, src_vocab_size, trg_vocab_size, use_cuda=False):
         super(NMT, self).__init__()
+
+        self.use_cuda = use_cuda
 
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
@@ -38,6 +40,15 @@ class NMT(nn.Module):
         self.logsoftmax = torch.nn.LogSoftmax()
         self.tanh = torch.nn.Tanh()
 
+        if use_cuda:
+            self.encoder = self.encoder.cuda()
+            self.decoder = self.decoder.cuda()
+            self.encoder_embedding = self.encoder_embedding.cuda()
+            self.decoder_embedding = self.decoder_embedding.cuda()
+            self.wi = self.wi.cuda()
+            self.wo = self.wo.cuda()
+            self.generator = self.generator.cuda()
+
     def forward(self, train_src_batch, train_trg_batch):
 
         encoder_batch, h, c = self.encoder(train_src_batch)
@@ -45,9 +56,17 @@ class NMT(nn.Module):
         batch_size = encoder_batch.size()[1]
 
         result = Variable(torch.FloatTensor(sent_len, batch_size, self.trg_vocab_size))
+        # result[0] = Variable(torch.FloatTensor(batch_size, self.trg_vocab_size).fill_(-1))
+        # result[0,:,2]=0
+        w = Variable(torch.LongTensor(batch_size).fill_(2))
+
+        if self.use_cuda:
+            result = result.cuda()
+            w = w.cuda()
+
         result[0] = Variable(torch.FloatTensor(batch_size, self.trg_vocab_size).fill_(-1))
         result[0,:,2]=0
-        w = Variable(torch.LongTensor(batch_size).fill_(2))
+
         for i in range(1, sent_len):
             if self.training:
 
@@ -72,8 +91,6 @@ class NMT(nn.Module):
 
     def decoderStep(self, sys_out_batch, w, h, c):
 
-        # encoder_hidden_size=512
-        # decoder_hidden_size=1024
         seq_len = sys_out_batch.size()[0]
         batch_size = sys_out_batch.size()[1]
 
