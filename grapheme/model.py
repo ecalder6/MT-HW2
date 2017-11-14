@@ -41,7 +41,8 @@ class NMT(nn.Module):
         self.tanh = torch.nn.Tanh()
 
         if use_cuda:
-            self.encoder = self.encoder.cuda()
+
+            self.encoderLSTM = self.encoderLSTM.cuda()
             self.decoder = self.decoder.cuda()
             self.encoder_embedding = self.encoder_embedding.cuda()
             self.decoder_embedding = self.decoder_embedding.cuda()
