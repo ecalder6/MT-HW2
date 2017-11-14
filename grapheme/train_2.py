@@ -63,7 +63,7 @@ def main(options):
   src_vocab_size = len(src_vocab)
 
   # original_model = torch.load(open(options.original_model_file, 'rb'))
-  nmt = NMT(src_vocab_size, trg_vocab_size) # TODO: add more arguments as necessary 
+  nmt = NMT(src_vocab_size, trg_vocab_size, use_cuda) # TODO: add more arguments as necessary 
   if use_cuda > 0:
     nmt.cuda()
   else:
