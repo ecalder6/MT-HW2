@@ -58,7 +58,7 @@ def main(options):
   trg_vocab_size = len(trg_vocab)
 
   original_model = torch.load(open(options.original_model_file, 'rb'))
-  nmt = NMT(original_model) # TODO: add more arguments as necessary 
+  nmt = NMT(original_model, use_cuda) # TODO: add more arguments as necessary 
   if use_cuda > 0:
     nmt.cuda()
   else:
@@ -86,6 +86,7 @@ def main(options):
       sys_out_batch = nmt(train_src_batch, train_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       train_trg_mask = train_trg_mask.view(-1)
       train_trg_batch = train_trg_batch.view(-1)
+      print(type(sys_out_batch.data))
       train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
       train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)

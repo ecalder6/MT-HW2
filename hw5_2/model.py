@@ -7,10 +7,16 @@ torch.manual_seed(500)
 
 class NMT(nn.Module):
     """docstring for NMT"""
-    def __init__(self, original_model):
+    def __init__(self, original_model, use_cuda=False):
         super(NMT, self).__init__()
+        
+        self.use_cuda = use_cuda
+        if use_cuda:
+            for elem in original_model:
+                original_model[elem] = original_model[elem].cuda()
 
         self.encoder = nn.LSTM(300, 512, bidirectional=True)
+
         self.encoder.weight_ih_l0 = nn.Parameter(original_model['encoder.rnn.weight_ih_l0'])
         self.encoder.weight_hh_l0 = nn.Parameter(original_model['encoder.rnn.weight_hh_l0'])
         self.encoder.bias_ih_l0 = nn.Parameter(original_model['encoder.rnn.bias_ih_l0'])
@@ -51,6 +57,15 @@ class NMT(nn.Module):
         self.logsoftmax = torch.nn.LogSoftmax()
         self.tanh = torch.nn.Tanh()
 
+        if use_cuda:
+            self.encoder = self.encoder.cuda()
+            self.decoder = self.decoder.cuda()
+            self.encoder_embedding = self.encoder_embedding.cuda()
+            self.decoder_embedding = self.decoder_embedding.cuda()
+            self.wi = self.wi.cuda()
+            self.wo = self.wo.cuda()
+            self.generator = self.generator.cuda()
+
     def forward(self, train_src_batch, train_trg_batch):
 
         sent_len = train_trg_batch.size()[0]
@@ -69,9 +84,13 @@ class NMT(nn.Module):
         decoder_hidden_size = 1024
 
         result = Variable(torch.FloatTensor(sent_len, batch_size, 23262))
-        result[0] = Variable(torch.FloatTensor(batch_size, 23262).fill_(0))
 
         w = Variable(torch.LongTensor(batch_size).fill_(2))
+        if self.use_cuda:
+            result = result.cuda()
+            w = w.cuda()
+
+        result[0] = Variable(torch.FloatTensor(batch_size, 23262).fill_(0))
 
         for i in range(1, sent_len):
             wht1 = self.wi(h).view(1, batch_size, 2*encoder_hidden_size).expand_as(sys_out_batch)
