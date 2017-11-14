@@ -23,7 +23,7 @@ parser.add_argument("--trg_lang", default="en",
                     help="Target Language. (default = en)")
 parser.add_argument("--model_file", required=True,
                     help="Location to dump the models.")
-parser.add_argument("--batch_size", default=1, type=int,
+parser.add_argument("--batch_size", default=24, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
                     help="Epochs through the data. (default=20)")
@@ -73,10 +73,10 @@ def main(options):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
-      train_src_batch = Variable(batched_train_src[batch_i], volatile=True)  # of size (src_seq_len, batch_size)
-      train_trg_batch = Variable(batched_train_trg[batch_i], volatile=True)  # of size (src_seq_len, batch_size)
-      train_src_mask = Variable(batched_train_src_mask[batch_i], volatile=True)
-      train_trg_mask = Variable(batched_train_trg_mask[batch_i], volatile=True)
+      train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
+      train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
+      train_src_mask = Variable(batched_train_src_mask[batch_i])
+      train_trg_mask = Variable(batched_train_trg_mask[batch_i])
       if use_cuda:
         train_src_batch = train_src_batch.cuda()
         train_trg_batch = train_trg_batch.cuda()
@@ -91,12 +91,11 @@ def main(options):
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
       sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
       loss = criterion(sys_out_batch, train_trg_batch)
-      print(loss)
-      print(torch.max(sys_out_batch,dim=1), train_trg_batch)
       logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       # optimizer.zero_grad()
       # loss.backward()
       # optimizer.step()
+      break
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -111,7 +110,6 @@ def main(options):
         dev_src_mask = dev_src_mask.cuda()
         dev_trg_mask = dev_trg_mask.cuda()
 
-      # print(dev_trg_mask)
       sys_out_batch = nmt(dev_src_batch, dev_trg_batch)  # (trg_seq_len, batch_size, trg_vocab_size) # TODO: add more arguments as necessary 
       dev_trg_mask = dev_trg_mask.view(-1)
       dev_trg_batch = dev_trg_batch.view(-1)
@@ -119,18 +117,19 @@ def main(options):
       dev_trg_mask = dev_trg_mask.unsqueeze(1).expand(len(dev_trg_mask), trg_vocab_size)
       sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
       sys_out_batch = sys_out_batch.masked_select(dev_trg_mask).view(-1, trg_vocab_size)
-      # print(dev_trg_batch)
+
       loss = criterion(sys_out_batch, dev_trg_batch)
-      print(torch.max(sys_out_batch, dim=1), dev_trg_batch)
-      print(loss)
       logging.debug("dev loss at batch {0}: {1}".format(batch_i, loss.data[0]))
       dev_loss += loss
+      break
+
     dev_avg_loss = dev_loss / len(batched_dev_src)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
 
-    if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
-      logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
-      break
+    # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
+      # logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
+      # break
+
     torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     last_dev_avg_loss = dev_avg_loss
 
