@@ -90,6 +90,10 @@ def main(options):
       sent = []
       for i in range(1, max.size()[0]):
         sent.append(trg_vocab.itos[max[i,j].data.numpy()[0]])
+      try:
+        sent = sent[:sent.index('</s>') + 1]
+      except ValueError:
+        pass
       print(' '.join(sent).encode('utf-8').strip())
 
     # test_trg_mask = test_trg_mask.view(-1)
