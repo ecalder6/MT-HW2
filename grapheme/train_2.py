@@ -74,9 +74,11 @@ def main(options):
 
   # main training loop
   last_dev_avg_loss = float("inf")
+
   for epoch_i in range(options.epochs):
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
+    nmt.train()
     for i, batch_i in enumerate(utils.rand.srange(len(batched_train_src))):
       train_src_batch = Variable(batched_train_src[batch_i])  # of size (src_seq_len, batch_size)
       train_trg_batch = Variable(batched_train_trg[batch_i])  # of size (src_seq_len, batch_size)
@@ -106,6 +108,7 @@ def main(options):
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
+    nmt.eval()
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)

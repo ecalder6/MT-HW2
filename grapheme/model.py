@@ -14,9 +14,9 @@ class NMT(nn.Module):
 
         self.src_vocab_size = src_vocab_size
         self.trg_vocab_size = trg_vocab_size
-        self.encoder_embed_size = 300
-        self.decoder_embed_size = 300
-        self.encoder_hidden_size = 512
+        self.encoder_embed_size = 30
+        self.decoder_embed_size = 30
+        self.encoder_hidden_size = 64
         self.decoder_hidden_size = 2 * self.encoder_hidden_size
 
         self.encoderLSTM = nn.LSTM(self.encoder_embed_size, self.encoder_hidden_size, bidirectional=True)
