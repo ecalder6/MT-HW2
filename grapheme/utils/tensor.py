@@ -40,7 +40,7 @@ def advanced_batchize(data, batch_size, pad_index):
   batchized_data = []
   batchized_mask = []
   # except for last batch
-  for start_i in range(0, len(sorted_data) - batch_size, batch_size):
+  for start_i in range(0, len(sorted_data) - batch_size + 1, batch_size):
     batch_data = sorted_data[start_i: start_i + batch_size]
     seq_len = len(batch_data[-1])
     batch_tensor = (torch.ones((seq_len, batch_size)) * pad_index).long()
@@ -79,7 +79,7 @@ def advanced_batchize_no_sort(data, batch_size, pad_index, order=None):
   batchized_data = []
   batchized_mask = []
   # except for last batch
-  for start_i in range(0, len(data) - batch_size, batch_size):
+  for start_i in range(0, len(data) - batch_size + 1, batch_size):
     batch_data = data[start_i: start_i + batch_size]
     seq_len = max([len(batch_data[i]) for i in range(len(batch_data))])  # find longest seq
     batch_tensor = (torch.ones((seq_len, batch_size)) * pad_index).long()
