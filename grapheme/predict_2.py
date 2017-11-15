@@ -18,14 +18,14 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S', level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine Translation HW5.")
-parser.add_argument("--data_file", required=True,
+parser.add_argument("--data_file", default="data/hw5",
                     help="File prefix for training set.")
-parser.add_argument("--src_lang", default="de",
-                    help="Source Language. (default = de)")
-parser.add_argument("--trg_lang", default="en",
-                    help="Target Language. (default = en)")
+parser.add_argument("--src_lang", default="words",
+                    help="Source Language. (default = words)")
+parser.add_argument("--trg_lang", default="phoneme",
+                    help="Target Language. (default = phoneme)")
 parser.add_argument("--model_file", required=True,
-                    help="Location to dump the models.")
+                    help="Location to load the models.")
 parser.add_argument("--batch_size", default=24, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
@@ -40,8 +40,6 @@ parser.add_argument("--estop", default=1e-2, type=float,
                     help="Early stopping criteria on the development set. (default=1e-2)")
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
-parser.add_argument("--original_model_file", required=True,
-                    help="Location to load the original model.")
 # feel free to add more arguments as you need
 
 def main(options):
@@ -59,8 +57,8 @@ def main(options):
   trg_vocab_size = len(trg_vocab)
   # print(trg_vocab.itos[4])
 
-  original_model = torch.load(open(options.original_model_file, 'rb'))
-  nmt = NMT(original_model) # TODO: add more arguments as necessary 
+  nmt = torch.load(options.model_file, map_location={'cuda:0': 'cpu'})
+  nmt.use_cuda = False
   nmt.eval()
   if use_cuda > 0:
     nmt.cuda()
@@ -92,6 +90,10 @@ def main(options):
       sent = []
       for i in range(1, max.size()[0]):
         sent.append(trg_vocab.itos[max[i,j].data.numpy()[0]])
+      try:
+        sent = sent[:sent.index('</s>') + 1]
+      except ValueError:
+        pass
       print(' '.join(sent).encode('utf-8').strip())
 
     # test_trg_mask = test_trg_mask.view(-1)
