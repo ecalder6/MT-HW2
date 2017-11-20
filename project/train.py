@@ -50,6 +50,10 @@ parser.add_argument("--momentum", default=0.9, type=float,
                     help="Momentum when performing SGD. (default=0.9)")
 parser.add_argument("--estop", default=1e-2, type=float,
                     help="Early stopping criteria on the development set. (default=1e-2)")
+parser.add_argument("--embedding_size", "-es", default=300, type=int,
+                    help="Embedding size of the LSTM. (default=300)")
+parser.add_argument("--hidden_size", "-hs", default=512, type=int,
+                    help="Hidden size of the LSTM. (default=512)")
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
 # feel free to add more arguments as you need
@@ -103,8 +107,8 @@ def main(options):
   src_vocab_size = len(src_vocab)
   trg_vocab_size = len(trg_vocab)
 
-  src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], use_cuda)
-  trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], use_cuda)
+  src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+  trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
   # src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   # trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
 

@@ -5,11 +5,11 @@ import torch.nn as nn
 
 class LM(nn.Module):
     """docstring for NMT"""
-    def __init__(self, vocab_size, bos, eos, use_cuda=False):
+    def __init__(self, vocab_size, bos, eos, embed_size, hidden_size, use_cuda=False):
         super(LM, self).__init__()
 
-        self.hidden_size = 512
-        self.embed_size = 300
+        self.hidden_size = hidden_size
+        self.embed_size = embed_size
 
         self.vocab_size = vocab_size
         self.bos = bos
