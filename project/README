@@ -1,0 +1,5 @@
+To get this to work, first you have to preprocess the data (the preprocess file has been changed). Run the preprocess the same way it was fun in hw5, except use --charniak in preprocess both languages.
+
+Then have them written to "data/hw5.de" and "data/hw5.en" and run split_data.py This is will split the data into more usable parts.
+
+Then train.py is used for the actual training.
