@@ -93,9 +93,9 @@ class LM(nn.Module):
                     if teacher_forcing:
                         # print(tgt_sent[i-1])
                         # print(self.embedding(tgt_sent[i-1]))
-                        _, (h,c) = self.encoder(self.embedding(tgt_sent[i-1]), (h,c))
+                        _, (h,c) = self.encoder(self.embedding(tgt_sent[i-1]).view(1,batch_size,-1), (h,c))
                     else:
-                        _, (h,c) = self.encoder(self.embedding(w), (h,c))
+                        _, (h,c) = self.encoder(self.embedding(w).view(1,batch_size,-1), (h,c))
 
                     result[i] = self.logsoftmax(self.generator(h).view(batch_size, -1))
                     if not teacher_forcing:
