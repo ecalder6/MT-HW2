@@ -37,10 +37,10 @@ parser.add_argument("--mono_loss", default=0, type=int,
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
 
-parser.add_argument("--model_file_src", required=True,
-                    help="Location to dump the source model.")
-parser.add_argument("--model_file_trg", required=True,
-                    help="Location to dump the target model.")
+# parser.add_argument("--model_file_src", required=True,
+                    # help="Location to dump the source model.")
+# parser.add_argument("--model_file_trg", required=True,
+                    # help="Location to dump the target model.")
 
 # feel free to add more arguments as you need
 
@@ -53,8 +53,8 @@ def main(options):
   # src_lm = torch.load(options.model_file_src, pickle_module=dill)
   # trg_lm = torch.load(options.model_file_trg, pickle_module=dill)
 
-  src_lm = torch.load(open(options.model_file_src, 'rb'))
-  trg_lm = torch.load(open(options.model_file_trg, 'rb'))
+  # src_lm = torch.load(open(options.model_file_src, 'rb'))
+  # trg_lm = torch.load(open(options.model_file_trg, 'rb'))
 
   src_vocab = dill.load(open('src_vocab.pickle', 'rb'))
   trg_vocab = dill.load(open('trg_vocab.pickle', 'rb'))
@@ -62,17 +62,19 @@ def main(options):
   src_test = dill.load(open('src_test.pickle', 'rb'))
   trg_test = dill.load(open('trg_test.pickle', 'rb'))
 
-  # src_lm = LM(len(src_vocab), src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], 300, 512)
-  # trg_lm = LM(len(trg_vocab), trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], 300, 512)
+  src_lm = LM(len(src_vocab), src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], 300, 512)
+  trg_lm = LM(len(trg_vocab), trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], 300, 512)
 
   for i, sent in enumerate(src_test):
     # print(sent.size())
-    sent = Variable(sent, volatile=True).view(1, -1).cuda()
-    trg_sent = Variable(trg_test[i], volatile=True).view(1,-1).cuda()
+    sent = Variable(sent, volatile=True).view(-1, 1)
+    trg_sent = Variable(trg_test[i], volatile=True).view(-1,1)
     h,c = src_lm(sent=sent)
+    # print(h,c)
     results = trg_lm(h=h, c=c, encode=False, tgt_sent=trg_sent, teacher_forcing=False)
+    # print(results)
     # print(results.size())
-    _,w = torch.max(results[0], dim=1)
+    _,w = torch.max(results.view(sent.size()[0], -1), dim=1)
     sentence = []
     for word in w:
       sentence.append(trg_vocab.itos[word.data[0]])
