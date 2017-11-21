@@ -55,7 +55,7 @@ def main(options):
 
   src_lm = torch.load(open(options.model_file_src, 'rb'))
   trg_lm = torch.load(open(options.model_file_trg, 'rb'))
-  
+
   src_vocab = dill.load(open('src_vocab.pickle', 'rb'))
   trg_vocab = dill.load(open('trg_vocab.pickle', 'rb'))
 
@@ -67,8 +67,8 @@ def main(options):
 
   for i, sent in enumerate(src_test):
     # print(sent.size())
-    sent = Variable(sent).view(1, -1)
-    trg_sent = Variable(trg_test[i]).view(1,-1)
+    sent = Variable(sent, volatile=True).view(1, -1).cuda()
+    trg_sent = Variable(trg_test[i], volatile=True).view(1,-1).cuda()
     h,c = src_lm(sent=sent)
     results = trg_lm(h=h, c=c, encode=False, tgt_sent=trg_sent, teacher_forcing=False)
     # print(results.size())
