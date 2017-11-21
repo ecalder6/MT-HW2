@@ -23,8 +23,10 @@ class LM(nn.Module):
         self.logsoftmax = torch.nn.LogSoftmax()
 
         if use_cuda:
-            # TODO: PJ, could you do this?
-            pass
+            self.encoder = self.encoder.cuda()
+            self.embedding = self.embedding.cuda()
+            self.generator = self.generator.cuda()
+
 
     def forward(self, sent=None, h=None, c=None, encode=True, teacher_forcing=False, tgt_sent=None):
 
@@ -76,11 +78,15 @@ class LM(nn.Module):
                 batch_size = tgt_sent.size()[1]
 
                 result = Variable(torch.FloatTensor(sent_len, batch_size, self.vocab_size))
+                if self.use_cuda:
+                    result = result.cuda()
                 result[0] = Variable(torch.FloatTensor(batch_size, self.vocab_size).fill_(-1))
                 result[0,:,self.bos] = 0
 
                 if not teacher_forcing:
                     w = Variable(torch.LongTensor(batch_size).fill_(self.bos))
+                    if self.use_cuda():
+                        w = w.cuda()
 
                 for i in range(1, sent_len):
                     # print(i)
@@ -98,4 +104,7 @@ class LM(nn.Module):
                 return result
 
     def init_hidden(self, batch_size):
+        if self.use_cuda:
+            return Variable(torch.FloatTensor(1, batch_size, self.hidden_size).fill_(0)).cuda()
+
         return Variable(torch.FloatTensor(1, batch_size, self.hidden_size).fill_(0))
