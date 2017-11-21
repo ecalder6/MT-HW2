@@ -180,7 +180,7 @@ def main(options):
 
       if train_src_batch is not None:
         h_src, c_src = src_lm(sent=train_src_batch)
-      elif train_trg_batch is not None and options.mono_loss:
+      if train_trg_batch is not None and options.mono_loss:
         h_trg, c_trg = trg_lm(sent=train_src_batch)
       else:
         continue
