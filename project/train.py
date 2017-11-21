@@ -205,7 +205,7 @@ def main(options):
       if options.mono_loss:
         if train_src_batch is not None:
           use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
-          sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_src_batch, teacher_forcing=use_teacher_forcing)
+          sys_out_batch = src_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_src_batch, teacher_forcing=use_teacher_forcing)
 
           train_src_mask = train_src_mask.view(-1)
           train_src_batch = train_src_batch.view(-1)
