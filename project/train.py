@@ -182,8 +182,6 @@ def main(options):
         h_src, c_src = src_lm(sent=train_src_batch)
       if train_trg_batch is not None and options.mono_loss:
         h_trg, c_trg = trg_lm(sent=train_src_batch)
-      else:
-        continue
 
       total_loss = 0
       if index == 1:
