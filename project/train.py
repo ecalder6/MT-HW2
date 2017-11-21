@@ -181,7 +181,7 @@ def main(options):
       if train_src_batch is not None:
         h_src, c_src = src_lm(sent=train_src_batch)
       if train_trg_batch is not None and options.mono_loss:
-        h_trg, c_trg = trg_lm(sent=train_src_batch)
+        h_trg, c_trg = trg_lm(sent=train_trg_batch)
 
       total_loss = 0
       if index == 1:
@@ -189,13 +189,13 @@ def main(options):
         use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
         sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
 
-        train_trg_mask = train_trg_mask.view(-1)
-        train_trg_batch = train_trg_batch.view(-1)
-        train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
-        train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
+        train_trg_mask_tmp = train_trg_mask.view(-1)
+        train_trg_batch_tmp = train_trg_batch.view(-1)
+        train_trg_batch_tmp = train_trg_batch_tmp.masked_select(train_trg_mask_tmp)
+        train_trg_mask_tmp = train_trg_mask_tmp.unsqueeze(1).expand(len(train_trg_mask_tmp), trg_vocab_size)
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-        sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
-        loss = criterion(sys_out_batch, train_trg_batch)
+        sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
+        loss = criterion(sys_out_batch, train_trg_batch_tmp)
         logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
         # loss.backward()
         total_loss += loss
@@ -205,13 +205,13 @@ def main(options):
           use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
           sys_out_batch = src_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_src_batch, teacher_forcing=use_teacher_forcing)
 
-          train_src_mask = train_src_mask.view(-1)
-          train_src_batch = train_src_batch.view(-1)
-          train_src_batch = train_src_batch.masked_select(train_src_mask)
-          train_src_mask = train_src_mask.unsqueeze(1).expand(len(train_src_mask), src_vocab_size)
+          train_src_mask_tmp = train_src_mask.view(-1)
+          train_src_batch_tmp = train_src_batch.view(-1)
+          train_src_batch_tmp = train_src_batch_tmp.masked_select(train_src_mask_tmp)
+          train_src_mask_tmp = train_src_mask_tmp.unsqueeze(1).expand(len(train_src_mask_tmp), src_vocab_size)
           sys_out_batch = sys_out_batch.view(-1, src_vocab_size)
-          sys_out_batch = sys_out_batch.masked_select(train_src_mask).view(-1, src_vocab_size)
-          loss = criterion(sys_out_batch, train_src_batch)
+          sys_out_batch = sys_out_batch.masked_select(train_src_mask_tmp).view(-1, src_vocab_size)
+          loss = criterion(sys_out_batch, train_src_batch_tmp)
           logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
           total_loss += loss
 
@@ -219,13 +219,13 @@ def main(options):
           use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
           sys_out_batch = trg_lm(h=h_trg, c=c_trg, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
 
-          train_trg_mask = train_trg_mask.view(-1)
-          train_trg_batch = train_trg_batch.view(-1)
-          train_trg_batch = train_trg_batch.masked_select(train_trg_mask)
-          train_trg_mask = train_trg_mask.unsqueeze(1).expand(len(train_trg_mask), trg_vocab_size)
+          train_trg_mask_tmp = train_trg_mask.view(-1)
+          train_trg_batch_tmp = train_trg_batch.view(-1)
+          train_trg_batch_tmp = train_trg_batch_tmp.masked_select(train_trg_mask_tmp)
+          train_trg_mask_tmp = train_trg_mask_tmp.unsqueeze(1).expand(len(train_trg_mask_tmp), trg_vocab_size)
           sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-          sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
-          loss = criterion(sys_out_batch, train_trg_batch)
+          sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
+          loss = criterion(sys_out_batch, train_trg_batch_tmp)
           logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
           total_loss += loss
 

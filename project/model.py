@@ -85,7 +85,7 @@ class LM(nn.Module):
 
                 if not teacher_forcing:
                     w = Variable(torch.LongTensor(batch_size).fill_(self.bos))
-                    if self.use_cuda():
+                    if self.use_cuda:
                         w = w.cuda()
 
                 for i in range(1, sent_len):
