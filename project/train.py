@@ -1,6 +1,7 @@
 import utils.tensor
 import utils.rand
 
+import os.path
 import argparse
 import dill
 import logging
@@ -36,8 +37,10 @@ parser.add_argument("--mono_loss", default=0, type=int,
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
 
-parser.add_argument("--model_file", required=True,
-                    help="Location to dump the models.")
+parser.add_argument("--model_file_src", required=True,
+                    help="Location to dump the source model.")
+parser.add_argument("--model_file_trg", required=True,
+                    help="Location to dump the target model.")
 parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
@@ -107,8 +110,12 @@ def main(options):
   src_vocab_size = len(src_vocab)
   trg_vocab_size = len(trg_vocab)
 
-  src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
-  trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+  if os.path.isfile(options.model_file_src) and os.path.isfile(options.model_file_trg):
+    src_lm = torch.load(open(options.model_file_src, 'rb'))
+    trg_lm = torch.load(open(options.model_file_trg, 'rb'))
+  else:
+    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
   # src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   # trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
 
@@ -259,7 +266,8 @@ def main(options):
       # logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
       # break
 
-    torch.save(nmt, open(options.model_file + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    torch.save(src_lm, open(options.model_file_src + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    torch.save(trg_lm, open(options.model_file_trg + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     # last_dev_avg_loss = dev_avg_loss
 
 
