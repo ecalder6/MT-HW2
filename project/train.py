@@ -185,6 +185,7 @@ def main(options):
       else:
         continue
 
+      total_loss = 0
       if index == 1:
 
         use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
@@ -198,7 +199,8 @@ def main(options):
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch)
         logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-        loss.backward()
+        # loss.backward()
+        total_loss += loss
 
       if options.mono_loss:
         if train_src_batch is not None:
@@ -213,7 +215,7 @@ def main(options):
           sys_out_batch = sys_out_batch.masked_select(train_src_mask).view(-1, src_vocab_size)
           loss = criterion(sys_out_batch, train_src_batch)
           logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-          loss.backward()
+          total_loss += loss
 
         if train_trg_batch is not None:
           use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
@@ -227,8 +229,9 @@ def main(options):
           sys_out_batch = sys_out_batch.masked_select(train_trg_mask).view(-1, trg_vocab_size)
           loss = criterion(sys_out_batch, train_trg_batch)
           logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-          loss.backward()
+          total_loss += loss
 
+      total_loss.backward()
       optimizer_src.step()
       optimizer_trg.step()
 

@@ -50,26 +50,27 @@ class LM(nn.Module):
             return h,c
         else:
             if tgt_sent is None:
-                batch_size = x.size()[1]
-                if batch_size != 1:
-                    raise ValueError('Batch Size must be only 1')
+                raise ValueError()
+                # batch_size = x.size()[1]
+                # if batch_size != 1:
+                #     raise ValueError('Batch Size must be only 1')
 
-                result = []
-                result.append(torch.FloatTensor(batch_size, self.vocab_size).fill_(-1))
-                result[0][:, self.bos] = 0
-                w = Variable(torch.LongTensor(batch_size).fill_(self.bos))
+                # result = []
+                # result.append(torch.FloatTensor(batch_size, self.vocab_size).fill_(-1))
+                # result[0][:, self.bos] = 0
+                # w = Variable(torch.LongTensor(batch_size).fill_(self.bos))
 
-                i = 0
-                while w[0] != self.eos:
-                    i += 1
-                    _, (h,c) = self.encoder(self.embedding(w), (h,c))
-                    result.append(self.generator(h))
-                    _, w = torch.max(result[i], dim=1)
+                # i = 0
+                # while w[0] != self.eos:
+                #     i += 1
+                #     _, (h,c) = self.encoder(self.embedding(w), (h,c))
+                #     result.append(self.generator(h))
+                #     _, w = torch.max(result[i], dim=1)
 
-                var_result = Variable(torch.FloatTensor(len(result), batch_size, self.vocab_size))
-                for i, res in enumerate(result):
-                    var_result[i] = res
-                return var_result
+                # var_result = Variable(torch.FloatTensor(len(result), batch_size, self.vocab_size))
+                # for i, res in enumerate(result):
+                #     var_result[i] = res
+                # return var_result
             else:
                 sent_len = tgt_sent.size()[0]
                 batch_size = tgt_sent.size()[1]
