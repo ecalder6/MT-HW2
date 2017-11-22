@@ -37,10 +37,10 @@ parser.add_argument("--mono_loss", default=0, type=int,
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
 
-parser.add_argument("--model_file_src", required=True,
-                    help="Location to dump the source model.")
-parser.add_argument("--model_file_trg", required=True,
-                    help="Location to dump the target model.")
+# parser.add_argument("--model_file_src", required=True,
+                    # help="Location to dump the source model.")
+# parser.add_argument("--model_file_trg", required=True,
+                    # help="Location to dump the target model.")
 parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
@@ -110,12 +110,12 @@ def main(options):
   src_vocab_size = len(src_vocab)
   trg_vocab_size = len(trg_vocab)
 
-  if os.path.isfile(options.model_file_src) and os.path.isfile(options.model_file_trg):
-    src_lm = torch.load(open(options.model_file_src, 'rb'))
-    trg_lm = torch.load(open(options.model_file_trg, 'rb'))
-  else:
-    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
-    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+  # if os.path.isfile(options.model_file_src) and os.path.isfile(options.model_file_trg):
+    # src_lm = torch.load(open(options.model_file_src, 'rb'))
+    # trg_lm = torch.load(open(options.model_file_trg, 'rb'))
+  # else:
+  src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+  trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
   # src_train, src_dev, src_test, src_vocab = torch.load(open(options.data_file + "." + options.src_lang, 'rb'))
   # trg_train, trg_dev, trg_test, trg_vocab = torch.load(open(options.data_file + "." + options.trg_lang, 'rb'))
 
@@ -148,8 +148,8 @@ def main(options):
 
     shuffle(batches)
     for i, (index, batch_i) in enumerate(batches):
-      optimizer_trg.zero_grad()
-      optimizer_src.zero_grad()
+      # optimizer_trg.zero_grad()
+      # optimizer_src.zero_grad()
 
       if index == 1:
         train_src_batch = Variable(batched_train_src1[batch_i])
@@ -178,14 +178,16 @@ def main(options):
           train_src_batch = train_src_batch.cuda()
           train_src_mask = train_src_mask.cuda()
 
-      if train_src_batch is not None:
-        h_src, c_src = src_lm(sent=train_src_batch)
+      # if train_src_batch is not None:
+        # h_src, c_src = src_lm(sent=train_src_batch)
       # if train_trg_batch is not None and options.mono_loss:
         # h_trg, c_trg = trg_lm(sent=train_trg_batch)
 
       total_loss = 0
       if index == 1:
-
+        optimizer_trg.zero_grad()
+        optimizer_src.zero_grad()
+        h_src, c_src = src_lm(sent=train_src_batch)
         use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
         sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
 
@@ -196,12 +198,18 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+        # logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
         # loss.backward()
         total_loss += loss
+        loss.backward()
+        optimizer_src.step()
+        optimizer_trg.step()
 
       if options.mono_loss:
         if train_src_batch is not None:
+          optimizer_trg.zero_grad()
+          optimizer_src.zero_grad()
+          h_src, c_src = src_lm(sent=train_src_batch)
           use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
           sys_out_batch = src_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_src_batch, teacher_forcing=use_teacher_forcing)
 
@@ -212,8 +220,11 @@ def main(options):
           sys_out_batch = sys_out_batch.view(-1, src_vocab_size)
           sys_out_batch = sys_out_batch.masked_select(train_src_mask_tmp).view(-1, src_vocab_size)
           loss = criterion(sys_out_batch, train_src_batch_tmp)
-          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+          # logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
           total_loss += loss
+          loss.backward()
+          optimizer_src.step()
+          optimizer_trg.step()
 
         # if train_trg_batch is not None:
 
@@ -232,9 +243,9 @@ def main(options):
         #   # total_loss += loss
         #   loss.backward()
 
-      total_loss.backward()
-      optimizer_src.step()
-      optimizer_trg.step()
+      # total_loss.backward()
+      # optimizer_src.step()
+      # optimizer_trg.step()
 
 
 
@@ -253,11 +264,12 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
-        # total_loss += loss
+        # logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+        total_loss += loss
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
+      logging.debug("loss at batch {0}: {1}".format(i, total_loss.data[0]))
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
