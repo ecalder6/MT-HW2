@@ -86,8 +86,9 @@ def main(options):
     batched_train_src1, batched_train_src_mask1, sort_index = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<blank>"])
     batched_train_trg1, batched_train_trg_mask1 = utils.tensor.advanced_batchize_no_sort(trg_train, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
     batches = batches + [(1,i) for i in range(len(batched_train_src1))]
-    batches = batches + [(4,i) for i in range(len(batched_train_src1))]
-    batches = batches + [(5,i) for i in range(len(batched_train_src1))]
+    if options.mono_loss:
+      batches = batches + [(4,i) for i in range(len(batched_train_src1))]
+      batches = batches + [(5,i) for i in range(len(batched_train_src1))]
 
   if options.contain_trg:
     print('Load')
