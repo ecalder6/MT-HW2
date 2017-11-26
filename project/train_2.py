@@ -41,6 +41,10 @@ parser.add_argument("--model_file_src", required=True,
                     help="Location to dump the source model.")
 parser.add_argument("--model_file_trg", required=True,
                     help="Location to dump the target model.")
+parser.add_argument("--load_file_src", 
+                    help="Location to dump the source model.")
+parser.add_argument("--load_file_trg",
+                    help="Location to dump the target model.")
 parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for training. (default=1)")
 parser.add_argument("--epochs", default=20, type=int,
@@ -55,8 +59,10 @@ parser.add_argument("--estop", default=1e-2, type=float,
                     help="Early stopping criteria on the development set. (default=1e-2)")
 parser.add_argument("--embedding_size", "-es", default=300, type=int,
                     help="Embedding size of the LSTM. (default=300)")
-parser.add_argument("--hidden_size", "-hs", default=512, type=int,
-                    help="Hidden size of the LSTM. (default=512)")
+parser.add_argument("--hidden_size", "-hs", default=256, type=int,
+                    help="Hidden size of the LSTM. (default=256)")
+parser.add_argument("--dropout", "-dr", default=0.4, type=int,
+                    help="Dropout of the decoder LSTM. (default=0.4)")
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
 # feel free to add more arguments as you need
@@ -98,12 +104,12 @@ def main(options):
   src_vocab_size = len(src_vocab)
   trg_vocab_size = len(trg_vocab)
 
-  if os.path.isfile(options.model_file_src) and os.path.isfile(options.model_file_trg):
-    src_lm = torch.load(open(options.model_file_src, 'rb'))
-    trg_lm = torch.load(open(options.model_file_trg, 'rb'))
+  if os.path.isfile(options.load_file_src) and os.path.isfile(options.load_file_trg):
+    src_lm = torch.load(open(options.load_file_src, 'rb'))
+    trg_lm = torch.load(open(options.load_file_trg, 'rb'))
   else:
-    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
-    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, use_cuda)
+    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, options.dropout, use_cuda)
+    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, options.dropout, use_cuda)
 
   if use_cuda > 0:
     src_lm.cuda()
@@ -122,7 +128,8 @@ def main(options):
     print(epoch_i)
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
-
+    src_lm.train()
+    trg_lm.train()
     for i, batch_i in enumerate(range(len(batched_train_src))):
       optimizer_trg.zero_grad()
       optimizer_src.zero_grad()
@@ -156,6 +163,8 @@ def main(options):
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
+    src_lm.eval()
+    trg_lm.eval()
     for batch_i in range(len(batched_dev_src)):
       dev_src_batch = Variable(batched_dev_src[batch_i], volatile=True)
       dev_trg_batch = Variable(batched_dev_trg[batch_i], volatile=True)

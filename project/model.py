@@ -5,7 +5,7 @@ import torch.nn as nn
 
 class LM(nn.Module):
     """docstring for NMT"""
-    def __init__(self, vocab_size, bos, eos, embed_size, hidden_size, use_cuda=False):
+    def __init__(self, vocab_size, bos, eos, embed_size, hidden_size, dropout, use_cuda=False):
         super(LM, self).__init__()
 
         self.hidden_size = hidden_size
@@ -21,6 +21,7 @@ class LM(nn.Module):
         self.generator = nn.Linear(self.hidden_size, vocab_size)
 
         self.logsoftmax = torch.nn.LogSoftmax()
+        self.dropout = torch.nn.Dropout(p=dropout)
 
         if use_cuda:
             self.encoder = self.encoder.cuda()
@@ -90,6 +91,8 @@ class LM(nn.Module):
 
                 for i in range(1, sent_len):
                     # print(i)
+                    h = self.dropout(h)
+                    c = self.dropout(c)
                     if teacher_forcing:
                         # print(tgt_sent[i-1])
                         # print(self.embedding(tgt_sent[i-1]))
