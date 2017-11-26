@@ -27,6 +27,7 @@ class LM(nn.Module):
             self.encoder = self.encoder.cuda()
             self.embedding = self.embedding.cuda()
             self.generator = self.generator.cuda()
+            self.dropout = self.dropout.cuda()
 
 
     def forward(self, sent=None, h=None, c=None, encode=True, teacher_forcing=False, tgt_sent=None):
