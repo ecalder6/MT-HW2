@@ -74,7 +74,7 @@ def main(options):
     results = trg_lm(h=h, c=c, encode=False, tgt_sent=trg_sent, teacher_forcing=True)
     # print(results)
     # print(results.size())
-    _,w = torch.max(results.view(sent.size()[0], -1), dim=1)
+    _,w = torch.max(results.view(trg_sent.size()[0], -1), dim=1)
     sentence = []
     for word in w:
       sentence.append(trg_vocab.itos[word.data[0]])
