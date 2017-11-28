@@ -86,11 +86,24 @@ space = {
     'learning_rate': hp.uniform('lr', 0.01, 0.2)
 }
 
+def handle_integers( params ):
+
+	new_params = {}
+	for k, v in params.items():
+		if type( v ) == float and int( v ) == v:
+			new_params[k] = int( v )
+		else:
+			new_params[k] = v
+	
+	return new_params
+
+
 def get_params():
     params = sample(space)
-    return params
+    return handle_integers(params)
 
 def try_params(n_iterations, params):
+  n_iterations = int(n_iterations)
   use_cuda = (len(options.gpuid) >= 1)
   if options.gpuid:
     cuda.set_device(options.gpuid[0])
