@@ -45,7 +45,7 @@ class Hyperband:
 				
 				n_configs = n * self.eta ** ( -i )
 				n_iterations = r * self.eta ** ( i )
-				
+				print T[i]
 				print "\n*** {} configurations x {:.1f} iterations each".format( 
 					n_configs, n_iterations )
 				
