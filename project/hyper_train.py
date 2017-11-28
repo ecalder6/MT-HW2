@@ -236,7 +236,7 @@ def try_params(n_iterations, params):
     # torch.save(trg_lm, open(options.model_file_trg + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     # last_dev_avg_loss = dev_avg_loss
 
-    return {'loss': dev_avg_loss}
+    return {'loss': dev_avg_loss.data[0]}
 
 try:
 	output_file = sys.argv[1]
