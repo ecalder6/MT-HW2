@@ -61,7 +61,7 @@ parser.add_argument("--embedding_size", "-es", default=300, type=int,
                     help="Embedding size of the LSTM. (default=300)")
 parser.add_argument("--hidden_size", "-hs", default=256, type=int,
                     help="Hidden size of the LSTM. (default=256)")
-parser.add_argument("--dropout", "-dr", default=0.4, type=int,
+parser.add_argument("--dropout", "-dr", default=0.4, type=float,
                     help="Dropout of the decoder LSTM. (default=0.4)")
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
