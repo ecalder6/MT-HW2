@@ -11,7 +11,7 @@ class Hyperband:
 		self.get_params = get_params_function
 		self.try_params = try_params_function
 		
-		self.max_iter = 10  	# maximum iterations per configuration
+		self.max_iter = 30  	# maximum iterations per configuration
 		self.eta = 3			# defines configuration downsampling rate (default = 3)
 
 		self.logeta = lambda x: log( x ) / log( self.eta )
@@ -45,7 +45,6 @@ class Hyperband:
 				
 				n_configs = n * self.eta ** ( -i )
 				n_iterations = r * self.eta ** ( i )
-				print T[i]
 				print "\n*** {} configurations x {:.1f} iterations each".format( 
 					n_configs, n_iterations )
 				
@@ -53,7 +52,7 @@ class Hyperband:
 				early_stops = []
 				
 				for t in T:
-					
+					print t
 					self.counter += 1
 					print "\n{} | {} | lowest loss so far: {:.4f} (run {})\n".format( 
 						self.counter, ctime(), self.best_loss, self.best_counter )
