@@ -41,9 +41,9 @@ parser.add_argument("--model_file_src", required=True,
                     help="Location to dump the source model.")
 parser.add_argument("--model_file_trg", required=True,
                     help="Location to dump the target model.")
-parser.add_argument("--load_file_src",
+parser.add_argument("--load_file_src", default='',
                     help="Location to dump the source model.")
-parser.add_argument("--load_file_trg",
+parser.add_argument("--load_file_trg", default='',
                     help="Location to dump the target model.")
 parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for training. (default=1)")
