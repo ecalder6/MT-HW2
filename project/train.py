@@ -255,10 +255,11 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0

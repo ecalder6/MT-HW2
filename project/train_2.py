@@ -158,7 +158,7 @@ def main(options):
       loss.backward()
       optimizer_src.step()
       optimizer_trg.step()
-      if i % 10 == 0:
+      if i % 100 == 0:
         logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
