@@ -33,8 +33,8 @@ parser.add_argument("--contain_src", default=0, type=int,
                     help="If it should train on source (german) monolingual data.")
 parser.add_argument("--mono_loss", default=0, type=int,
                     help="If it should train with monolingual loss.")
-parser.add_argument("--mono_loss_rate", "-mlr", default=0.1, type=float,
-                    help="The amount at which mono_loss contributes to total loss. (default=0.1)")
+parser.add_argument("--mono_loss_multi", "-mlm", default=0.1, type=float,
+                    help="The multiplier at which mono_loss contributes to total loss. (default=0.1)")
 
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
@@ -238,7 +238,7 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, src_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_src_mask_tmp).view(-1, src_vocab_size)
         loss = criterion(sys_out_batch, train_src_batch_tmp)
-        loss *= options.mono_loss_rate
+        loss *= options.mono_loss_multi * (1 / 10 * epoch_i)
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
@@ -260,7 +260,7 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        loss *= options.mono_loss_rate
+        loss *= options.mono_loss_multi * (1 / 10 * epoch_i)
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
