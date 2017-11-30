@@ -33,6 +33,8 @@ parser.add_argument("--contain_src", default=0, type=int,
                     help="If it should train on source (german) monolingual data.")
 parser.add_argument("--mono_loss", default=0, type=int,
                     help="If it should train with monolingual loss.")
+parser.add_argument("--mono_loss_multi", "-mlm", default=0.1, type=float,
+                    help="The multiplier at which mono_loss contributes to total loss. (default=0.1)")
 
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
@@ -41,9 +43,9 @@ parser.add_argument("--model_file_src", required=True,
                     help="Location to dump the source model.")
 parser.add_argument("--model_file_trg", required=True,
                     help="Location to dump the target model.")
-parser.add_argument("--load_file_src",
+parser.add_argument("--load_file_src", default='',
                     help="Location to dump the source model.")
-parser.add_argument("--load_file_trg",
+parser.add_argument("--load_file_trg", default='',
                     help="Location to dump the target model.")
 parser.add_argument("--batch_size", default=1, type=int,
                     help="Batch size for training. (default=1)")
@@ -61,7 +63,7 @@ parser.add_argument("--embedding_size", "-es", default=300, type=int,
                     help="Embedding size of the LSTM. (default=300)")
 parser.add_argument("--hidden_size", "-hs", default=512, type=int,
                     help="Hidden size of the LSTM. (default=512)")
-parser.add_argument("--dropout", "-dr", default=0.4, type=int,
+parser.add_argument("--dropout", "-dr", default=0.4, type=float,
                     help="Dropout of the decoder LSTM. (default=0.4)")
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
@@ -216,10 +218,11 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
 
       elif options.mono_loss and train_src_batch is not None:
         optimizer_trg.zero_grad()
@@ -235,10 +238,12 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, src_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_src_mask_tmp).view(-1, src_vocab_size)
         loss = criterion(sys_out_batch, train_src_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+        loss *= options.mono_loss_multi * (1 / 10 * epoch_i)
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
       
       elif train_trg_batch is not None and options.mono_loss:
         optimizer_trg.zero_grad()
@@ -255,10 +260,12 @@ def main(options):
         sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
         sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
         loss = criterion(sys_out_batch, train_trg_batch_tmp)
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+        loss *= options.mono_loss_multi * (1 / 10 * epoch_i)
         loss.backward()
         optimizer_src.step()
         optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0

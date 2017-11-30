@@ -1,3 +1,11 @@
+import sys
+import cPickle as pickle
+from pprint import pprint
+from hyperopt import hp
+from hyperopt.pyll.stochastic import sample
+
+from hyperband import Hyperband
+
 import utils.tensor
 import utils.rand
 
@@ -13,6 +21,7 @@ from model import LM
 
 from random import shuffle
 import random
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
@@ -66,9 +75,35 @@ parser.add_argument("--dropout", "-dr", default=0.4, type=float,
 parser.add_argument("--gpuid", default=[], nargs='+', type=int,
                     help="ID of gpu device to use. Empty implies cpu usage.")
 # feel free to add more arguments as you need
+ret = parser.parse_known_args()
+options = ret[0]
 
-def main(options):
+space = {
+    'hidden_size': hp.choice('hs', (64, 128, 256, 512, 1024)),
+    'embedding_size': hp.choice('es', (50, 100, 150, 200, 250, 300)),
+    'dropout': hp.uniform('dr', 0.0, 0.9),
+    'teacher_forcing_ratio': hp.uniform('tf', 0.0, 1.0),
+    'learning_rate': hp.uniform('lr', 0.01, 0.2)
+}
 
+def handle_integers( params ):
+
+	new_params = {}
+	for k, v in params.items():
+		if type( v ) == float and int( v ) == v:
+			new_params[k] = int( v )
+		else:
+			new_params[k] = v
+	
+	return new_params
+
+
+def get_params():
+    params = sample(space)
+    return handle_integers(params)
+
+def try_params(n_iterations, params):
+  n_iterations = int(n_iterations)
   use_cuda = (len(options.gpuid) >= 1)
   if options.gpuid:
     cuda.set_device(options.gpuid[0])
@@ -108,8 +143,8 @@ def main(options):
     src_lm = torch.load(open(options.load_file_src, 'rb'))
     trg_lm = torch.load(open(options.load_file_trg, 'rb'))
   else:
-    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, options.dropout, use_cuda)
-    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], options.embedding_size, options.hidden_size, options.dropout, use_cuda)
+    src_lm = LM(src_vocab_size, src_vocab.stoi['<s>'], src_vocab.stoi['</s>'], params['embedding_size'], params['hidden_size'], params['dropout'], use_cuda)
+    trg_lm = LM(trg_vocab_size, trg_vocab.stoi['<s>'], trg_vocab.stoi['</s>'], params['embedding_size'], params['hidden_size'], params['dropout'], use_cuda)
 
   if use_cuda > 0:
     src_lm.cuda()
@@ -119,12 +154,12 @@ def main(options):
     trg_lm.cpu()
 
   criterion = torch.nn.NLLLoss()
-  optimizer_src = eval("torch.optim." + options.optimizer)(src_lm.parameters(), options.learning_rate)
-  optimizer_trg = eval("torch.optim." + options.optimizer)(trg_lm.parameters(), options.learning_rate)
+  optimizer_src = eval("torch.optim." + options.optimizer)(src_lm.parameters(), params['learning_rate'])
+  optimizer_trg = eval("torch.optim." + options.optimizer)(trg_lm.parameters(), params['learning_rate'])
 
   # main training loop
   # last_dev_avg_loss = float("inf")
-  for epoch_i in range(options.epochs):
+  for epoch_i in range(n_iterations):
     print(epoch_i)
     logging.info("At {0}-th epoch.".format(epoch_i))
     # srange generates a lazy sequence of shuffled range
@@ -145,7 +180,7 @@ def main(options):
         train_trg_mask = train_trg_mask.cuda()
     
       h_src, c_src = src_lm(sent=train_src_batch)
-      use_teacher_forcing = True if random.random() < options.teacher_forcing_ratio else False
+      use_teacher_forcing = True if random.random() < params['teacher_forcing_ratio'] else False
       sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
 
       train_trg_mask_tmp = train_trg_mask.view(-1)
@@ -197,14 +232,35 @@ def main(options):
       # logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
       # break
 
-    torch.save(src_lm, open(options.model_file_src + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
-    torch.save(trg_lm, open(options.model_file_trg + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    # torch.save(src_lm, open(options.model_file_src + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
+    # torch.save(trg_lm, open(options.model_file_trg + ".nll_{0:.2f}.epoch_{1}".format(dev_avg_loss.data[0], epoch_i), 'wb'), pickle_module=dill)
     # last_dev_avg_loss = dev_avg_loss
 
+    return {'loss': dev_avg_loss.data[0]}
 
-if __name__ == "__main__":
-  ret = parser.parse_known_args()
-  options = ret[0]
-  if ret[1]:
-    logging.warning("unknown arguments: {0}".format(parser.parse_known_args()[1]))
-  main(options)
+try:
+	output_file = sys.argv[1]
+	if not output_file.endswith( '.pkl' ):
+		output_file += '.pkl'	
+except IndexError:
+	output_file = 'results.pkl'
+	
+print "Will save results to", output_file
+
+#
+
+hb = Hyperband( get_params, try_params )
+results = hb.run( skip_last = 1 )
+
+print "{} total, best:\n".format( len( results ))
+
+for r in sorted( results, key = lambda x: x['loss'] )[:5]:
+	print "loss: {:.2%} | {} seconds | {:.1f} iterations | run {} ".format( 
+		r['loss'], r['seconds'], r['iterations'], r['counter'] )
+	pprint( r['params'] )
+	print
+
+print "saving..."
+
+with open( output_file, 'wb' ) as f:
+    pickle.dump( results, f )
