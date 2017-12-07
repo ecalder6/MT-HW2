@@ -80,7 +80,8 @@ space = {
     'embedding_size': hp.choice('es', (100, 200, 300)),
     'dropout': hp.choice('dr', (0.0, 0.2, 0.4)),
     'teacher_forcing_ratio': hp.choice('tf', (0.0, 0.25, 0.5)),
-    'mono_loss_multi': hp.choice('mlm', (0.01, 0.05, 0.1))
+    'mono_loss_multi': hp.choice('mlm', (0.01, 0.05, 0.1)),
+    'learning_rate': hp.choice('lr', (0.001, 0.005, 0.01))
 }
 
 def handle_integers( params ):
