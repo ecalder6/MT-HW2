@@ -46,10 +46,6 @@ parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
 
-parser.add_argument("--model_file_src", required=True,
-                    help="Location to dump the source model.")
-parser.add_argument("--model_file_trg", required=True,
-                    help="Location to dump the target model.")
 parser.add_argument("--load_file_src", default='',
                     help="Location to dump the source model.")
 parser.add_argument("--load_file_trg", default='',
@@ -79,11 +75,11 @@ ret = parser.parse_known_args()
 options = ret[0]
 
 space = {
-    'hidden_size': hp.choice('hs', (64, 128, 256, 512, 1024)),
-    'embedding_size': hp.choice('es', (50, 100, 150, 200, 250, 300)),
-    'dropout': hp.uniform('dr', 0.0, 0.9),
-    'teacher_forcing_ratio': hp.uniform('tf', 0.0, 1.0),
-    'learning_rate': hp.uniform('lr', 0.01, 0.2)
+    'hidden_size': hp.choice('hs', (128, 256, 512)),
+    'embedding_size': hp.choice('es', (100, 200, 300)),
+    'dropout': hp.choice('dr', (0.0, 0.2, 0.4)),
+    'teacher_forcing_ratio': hp.choice('tf', (0.0, 0.25, 0.5)),
+    'mono_loss_multi': hp.choice('mlm', (0.01, 0.05, 0.1))
 }
 
 def handle_integers( params ):
@@ -116,25 +112,40 @@ def try_params(n_iterations, params):
   batched_dev_src, batched_dev_src_mask, sort_index = utils.tensor.advanced_batchize(src_dev, options.batch_size, src_vocab.stoi["<blank>"])
   batched_dev_trg, batched_dev_trg_mask = utils.tensor.advanced_batchize_no_sort(trg_dev, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
   
-  # batches = []
+  batches = []
 
-  # if options.contain_bilingual:
-  print('Load')
-  src_train = dill.load(open('src_sents1.pickle', 'rb'))
-  print('Load src sents 1')
-  trg_train = dill.load(open('trg_sents1.pickle', 'rb'))
-  print('Load trg sents 1')
-  src_train = src_train + dill.load(open('src_sents2.pickle', 'rb'))
-  print('Load src sents 2')
-  trg_train = trg_train + dill.load(open('trg_sents2.pickle', 'rb'))
-  print('Load trg sents 2')
-  src_train = src_train + dill.load(open('src_sents3.pickle', 'rb'))
-  print('Load src sents 3')
-  trg_train = trg_train + dill.load(open('trg_sents3.pickle', 'rb'))
-  print('Load trg sents 3')
+  if options.contain_bilingual:
+    print('Load')
+    src_train = dill.load(open('src_sents1.pickle', 'rb'))
+    print('Load src sents 1')
+    trg_train = dill.load(open('trg_sents1.pickle', 'rb'))
+    print('Load trg sents 1')
+    batched_train_src1, batched_train_src_mask1, sort_index = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<blank>"])
+    batched_train_trg1, batched_train_trg_mask1 = utils.tensor.advanced_batchize_no_sort(trg_train, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
+    batches = batches + [(1,i) for i in range(len(batched_train_src1))]
+    if options.mono_loss:
+      batches = batches + [(4,i) for i in range(len(batched_train_src1))]
+      batches = batches + [(5,i) for i in range(len(batched_train_src1))]
 
-  batched_train_src, batched_train_src_mask, sort_index = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<blank>"])
-  batched_train_trg, batched_train_trg_mask = utils.tensor.advanced_batchize_no_sort(trg_train, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
+  if options.contain_trg:
+    print('Load')
+    # src_train = dill.load(open('src_sents2.pickle', 'rb'))
+    # print('Load src sents 2')
+    trg_train = dill.load(open('trg_sents2.pickle', 'rb'))
+    print('Load trg sents 2')
+    # batched_train_src2, batched_train_src_mask2, sort_index = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<blank>"])
+    batched_train_trg2, batched_train_trg_mask2 = utils.tensor.advanced_batchize_no_sort(trg_train, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
+    batches = batches + [(2,i) for i in range(len(batched_train_trg2))]
+
+  if options.contain_src:
+    print('Load')
+    src_train = dill.load(open('src_sents3.pickle', 'rb'))
+    print('Load src sents 3')
+    # trg_train = dill.load(open('trg_sents3.pickle', 'rb'))
+    # print('Load trg sents 3')
+    batched_train_src3, batched_train_src_mask3, sort_index = utils.tensor.advanced_batchize(src_train, options.batch_size, src_vocab.stoi["<blank>"])
+    # batched_train_trg3, batched_train_trg_mask3 = utils.tensor.advanced_batchize_no_sort(trg_train, options.batch_size, trg_vocab.stoi["<blank>"], sort_index)
+    batches = batches + [(3,i) for i in range(len(batched_train_src3))]
 
   src_vocab_size = len(src_vocab)
   trg_vocab_size = len(trg_vocab)
@@ -162,39 +173,117 @@ def try_params(n_iterations, params):
   for epoch_i in range(n_iterations):
     print(epoch_i)
     logging.info("At {0}-th epoch.".format(epoch_i))
-    # srange generates a lazy sequence of shuffled range
+
+    shuffle(batches)
     src_lm.train()
     trg_lm.train()
-    for i, batch_i in enumerate(range(len(batched_train_src))):
-      optimizer_trg.zero_grad()
-      optimizer_src.zero_grad()
+    for i, (index, batch_i) in enumerate(batches):
 
-      train_src_batch = Variable(batched_train_src[batch_i])
-      train_src_mask = Variable(batched_train_src_mask[batch_i])
-      train_trg_batch = Variable(batched_train_trg[batch_i])
-      train_trg_mask = Variable(batched_train_trg_mask[batch_i])
-      if use_cuda:
-        train_src_batch = train_src_batch.cuda()
-        train_trg_batch = train_trg_batch.cuda()
-        train_src_mask = train_src_mask.cuda()
-        train_trg_mask = train_trg_mask.cuda()
-    
-      h_src, c_src = src_lm(sent=train_src_batch)
-      use_teacher_forcing = True if random.random() < params['teacher_forcing_ratio'] else False
-      sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
+      train_src_batch = None
+      train_src_mask = None
+      train_trg_batch = None
+      train_trg_mask = None
 
-      train_trg_mask_tmp = train_trg_mask.view(-1)
-      train_trg_batch_tmp = train_trg_batch.view(-1)
-      train_trg_batch_tmp = train_trg_batch_tmp.masked_select(train_trg_mask_tmp)
-      train_trg_mask_tmp = train_trg_mask_tmp.unsqueeze(1).expand(len(train_trg_mask_tmp), trg_vocab_size)
-      sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
-      sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
-      loss = criterion(sys_out_batch, train_trg_batch_tmp)
-      loss.backward()
-      optimizer_src.step()
-      optimizer_trg.step()
-      if i % 100 == 0:
-        logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+      if index == 1:
+        train_src_batch = Variable(batched_train_src1[batch_i])
+        train_src_mask = Variable(batched_train_src_mask1[batch_i])
+        train_trg_batch = Variable(batched_train_trg1[batch_i])
+        train_trg_mask = Variable(batched_train_trg_mask1[batch_i])
+        if use_cuda:
+          train_src_batch = train_src_batch.cuda()
+          train_trg_batch = train_trg_batch.cuda()
+          train_src_mask = train_src_mask.cuda()
+          train_trg_mask = train_trg_mask.cuda()
+      elif index == 2:
+        train_trg_batch = Variable(batched_train_trg2[batch_i])
+        train_trg_mask = Variable(batched_train_trg_mask2[batch_i])
+        if use_cuda:
+          train_trg_batch = train_trg_batch.cuda()
+          train_trg_mask = train_trg_mask.cuda()
+      elif index == 3:
+        train_src_batch = Variable(batched_train_src3[batch_i])
+        train_src_mask = Variable(batched_train_src_mask3[batch_i])
+        if use_cuda:
+          train_src_batch = train_src_batch.cuda()
+          train_src_mask = train_src_mask.cuda()
+      elif index == 4:
+        train_src_batch = Variable(batched_train_src1[batch_i])
+        train_src_mask = Variable(batched_train_src_mask1[batch_i])
+        if use_cuda:
+          train_src_batch = train_src_batch.cuda()
+          train_src_mask = train_src_mask.cuda()
+      elif index == 5:
+        train_trg_batch = Variable(batched_train_trg1[batch_i])
+        train_trg_mask = Variable(batched_train_trg_mask1[batch_i])
+        if use_cuda:
+          train_trg_batch = train_trg_batch.cuda()
+          train_trg_mask = train_trg_mask.cuda()
+      else:
+        raise ValueError()
+
+      total_loss = 0
+      if index == 1:
+        optimizer_trg.zero_grad()
+        optimizer_src.zero_grad()
+        h_src, c_src = src_lm(sent=train_src_batch)
+        use_teacher_forcing = True if random.random() < params['teacher_forcing_ratio'] else False
+        sys_out_batch = trg_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
+
+        train_trg_mask_tmp = train_trg_mask.view(-1)
+        train_trg_batch_tmp = train_trg_batch.view(-1)
+        train_trg_batch_tmp = train_trg_batch_tmp.masked_select(train_trg_mask_tmp)
+        train_trg_mask_tmp = train_trg_mask_tmp.unsqueeze(1).expand(len(train_trg_mask_tmp), trg_vocab_size)
+        sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
+        sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
+        loss = criterion(sys_out_batch, train_trg_batch_tmp)
+        loss.backward()
+        optimizer_src.step()
+        optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+
+      elif options.mono_loss and train_src_batch is not None:
+        optimizer_trg.zero_grad()
+        optimizer_src.zero_grad()
+        h_src, c_src = src_lm(sent=train_src_batch)
+        use_teacher_forcing = True if random.random() < params['teacher_forcing_ratio'] else False
+        sys_out_batch = src_lm(h=h_src, c=c_src, encode=False, tgt_sent=train_src_batch, teacher_forcing=use_teacher_forcing)
+
+        train_src_mask_tmp = train_src_mask.view(-1)
+        train_src_batch_tmp = train_src_batch.view(-1)
+        train_src_batch_tmp = train_src_batch_tmp.masked_select(train_src_mask_tmp)
+        train_src_mask_tmp = train_src_mask_tmp.unsqueeze(1).expand(len(train_src_mask_tmp), src_vocab_size)
+        sys_out_batch = sys_out_batch.view(-1, src_vocab_size)
+        sys_out_batch = sys_out_batch.masked_select(train_src_mask_tmp).view(-1, src_vocab_size)
+        loss = criterion(sys_out_batch, train_src_batch_tmp)
+        loss *= params['mono_loss_multi'] * (1.0 / 10 * epoch_i)
+        loss.backward()
+        optimizer_src.step()
+        optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
+      
+      elif train_trg_batch is not None and options.mono_loss:
+        optimizer_trg.zero_grad()
+        optimizer_src.zero_grad()
+
+        h_trg, c_trg = trg_lm(sent=train_trg_batch)
+        use_teacher_forcing = True if random.random() < params['teacher_forcing_ratio'] else False
+        sys_out_batch = trg_lm(h=h_trg, c=c_trg, encode=False, tgt_sent=train_trg_batch, teacher_forcing=use_teacher_forcing)
+
+        train_trg_mask_tmp = train_trg_mask.view(-1)
+        train_trg_batch_tmp = train_trg_batch.view(-1)
+        train_trg_batch_tmp = train_trg_batch_tmp.masked_select(train_trg_mask_tmp)
+        train_trg_mask_tmp = train_trg_mask_tmp.unsqueeze(1).expand(len(train_trg_mask_tmp), trg_vocab_size)
+        sys_out_batch = sys_out_batch.view(-1, trg_vocab_size)
+        sys_out_batch = sys_out_batch.masked_select(train_trg_mask_tmp).view(-1, trg_vocab_size)
+        loss = criterion(sys_out_batch, train_trg_batch_tmp)
+        loss *= params['mono_loss_multi'] * (1.0 / 10 * epoch_i)
+        loss.backward()
+        optimizer_src.step()
+        optimizer_trg.step()
+        if i % 100 == 0:
+          logging.debug("loss at batch {0}: {1}".format(i, loss.data[0]))
 
     # validation -- this is a crude esitmation because there might be some paddings at the end
     dev_loss = 0.0
@@ -227,7 +316,6 @@ def try_params(n_iterations, params):
 
     dev_avg_loss = dev_loss / len(batched_dev_src)
     logging.info("Average loss value per instance is {0} at the end of epoch {1}".format(dev_avg_loss.data[0], epoch_i))
-
     # if (last_dev_avg_loss - dev_avg_loss).data[0] < options.estop:
       # logging.info("Early stopping triggered with threshold {0} (previous dev loss: {1}, current: {2})".format(epoch_i, last_dev_avg_loss.data[0], dev_avg_loss.data[0]))
       # break
