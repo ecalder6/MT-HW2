@@ -45,7 +45,8 @@ parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine
 
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
                     help="Teacher forcing ratio.")
-
+parser.add_argument("--mono_loss", default=0, type=int,
+                    help="If it should train with monolingual loss.")
 parser.add_argument("--load_file_src", default='',
                     help="Location to dump the source model.")
 parser.add_argument("--load_file_trg", default='',
