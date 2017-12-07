@@ -34,13 +34,13 @@ parser = argparse.ArgumentParser(description="Starter code for JHU CS468 Machine
                     # help="Source Language. (default = de)")
 # parser.add_argument("--trg_lang", default="en",
                     # help="Target Language. (default = en)")
-# parser.add_argument("--contain_bilingual", default=1, type=int,
-                    # help="If it should train on bilingual data.")
-# parser.add_argument("--contain_trg", default=0, type=int,
-                    # help="If it should train on target (english) monolingual data.")
-# parser.add_argument("--contain_src", default=0, type=int,
-                    # help="If it should train on source (german) monolingual data.")
-# parser.add_argument("--mono_loss", default=0, type=int,
+parser.add_argument("--contain_bilingual", default=1, type=int,
+                    help="If it should train on bilingual data.")
+parser.add_argument("--contain_trg", default=0, type=int,
+                    help="If it should train on target (english) monolingual data.")
+parser.add_argument("--contain_src", default=0, type=int,
+                    help="If it should train on source (german) monolingual data.")
+parser.add_argument("--mono_loss", default=0, type=int,
                     # help="If it should train with monolingual loss.")
 
 parser.add_argument("--teacher_forcing_ratio", default=1.0, type=float,
