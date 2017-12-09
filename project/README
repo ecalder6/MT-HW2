@@ -1,5 +1,32 @@
-To get this to work, first you have to preprocess the data (the preprocess file has been changed). Run the preprocess the same way it was fun in hw5, except use --charniak in preprocess both languages.
+Achintya Gopal agopal2
+Eric Calder ecalder6
+Philip Piantone ppianto1
 
-Then have them written to "data/hw5.de" and "data/hw5.en" and run split_data.py This is will split the data into more usable parts.
+You need to preprocess these commands
+```
+python preprocess.py --train_file trn.de --dev_file dev.de --test_file devtest.de --vocab_file model.src.vocab --data_file hw5.de --charniak
+python preprocess.py --train_file trn.en --dev_file dev.en --test_file devtest.fake.en --vocab_file model.trg.vocab --data_file hw5.en --charniak
+```
+Our training algorithm requires commandline inputs for batch_size, source model file and target model file such as this:
 
-Then train.py is used for the actual training.
+```python train.py --batch_size 48 --model_file_src a --model_file_trg b```
+
+To evaluate our model we run
+
+```
+python predict.py --model_file_src a --model_file_trg b > output.txt
+```
+
+The results then need to be trimmed with
+
+```
+python postprocess.py output.txt
+```
+
+
+Finally to score our results run
+
+```
+python score.py --prediction_file pf --reference_file rf
+```
+
