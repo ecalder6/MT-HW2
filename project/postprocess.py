@@ -13,8 +13,13 @@ from torch import cuda
 from torch.autograd import Variable
 import torch.nn as nn
 
+parser = argparse.ArgumentParser(description="For postprocess.")
+parser.add_argument("--file", required=True,
+                    help="File to postprocess")
+ret = parser.parse_known_args()
+options = ret[0]
 
-with open('learning.5.txt', 'rb') as f:
+with open(options.file, 'rb') as f:
     for line in f:
         line_pp = []
         # found = False
